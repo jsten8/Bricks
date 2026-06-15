@@ -918,15 +918,17 @@ function initGoogleAuth() {
     client_id: CLIENT_ID,
     scope: SCOPES,
     callback: async (resp) => {
-      if (resp.error) { setDriveStatus('error', 'Auth failed'); return; }
+      if (resp.error) { showConnectButton(); return; }
       accessToken = resp.access_token;
+      localStorage.setItem('bricks_drive_connected', '1');
       await findOrCreateDriveFile();
     },
   });
 }
 
 function signInAndSync() {
-  tokenClient.requestAccessToken({ prompt: 'consent' });
+  const prompt = localStorage.getItem('bricks_drive_connected') ? '' : 'consent';
+  tokenClient.requestAccessToken({ prompt });
 }
 
 function setDriveStatus(state, label) {
@@ -1013,20 +1015,15 @@ saveEntries = async function(entries) {
 
 function showConnectButton() {
   const el = document.getElementById('drive-status');
-  if (el) el.innerHTML = `<button onclick="signInAndSync()" style="background:none;border:1px solid var(--border);border-radius:5px;padding:3px 10px;font-size:11px;color:var(--muted);cursor:pointer;font-family:'DM Sans',sans-serif;">Connect Drive</button>`;
+  const label = localStorage.getItem('bricks_drive_connected') ? 'Reconnect Drive' : 'Connect Drive';
+  if (el) el.innerHTML = `<button onclick="signInAndSync()" style="background:none;border:1px solid var(--border);border-radius:5px;padding:3px 10px;font-size:11px;color:var(--muted);cursor:pointer;font-family:'DM Sans',sans-serif;">${label}</button>`;
 }
 
 // Init Google auth after page load
 window.addEventListener('load', () => {
   if (typeof google !== 'undefined') {
     initGoogleAuth();
-    // Try silent reconnect first; fall back to showing connect button
-    setDriveStatus('syncing', 'Reconnecting...');
-    tokenClient.requestAccessToken({ prompt: '' });
-    // If silent auth doesn't fire callback within 3s, show connect button
-    setTimeout(() => {
-      if (!accessToken) showConnectButton();
-    }, 3000);
+    showConnectButton();
   }
 });
 
