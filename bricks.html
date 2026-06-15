@@ -945,6 +945,7 @@ async function findOrCreateDriveFile() {
       { headers: { Authorization: `Bearer ${gapi_token()}` } }
     );
     const searchData = await searchRes.json();
+    console.log('Drive search response:', searchRes.status, searchData);
     if (searchData.files && searchData.files.length > 0) {
       driveFileId = searchData.files[0].id;
       setDriveStatus('synced', 'Drive connected');
@@ -953,6 +954,7 @@ async function findOrCreateDriveFile() {
       await createDriveFile();
     }
   } catch(e) {
+    console.error('Drive connection error:', e);
     setDriveStatus('error', 'Connection failed');
     setTimeout(showConnectButton, 1500);
   }
