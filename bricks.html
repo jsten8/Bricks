@@ -1020,8 +1020,13 @@ function showConnectButton() {
 window.addEventListener('load', () => {
   if (typeof google !== 'undefined') {
     initGoogleAuth();
-    // Always show connect button on load — auto-connect after auth
-    showConnectButton();
+    // Try silent reconnect first; fall back to showing connect button
+    setDriveStatus('syncing', 'Reconnecting...');
+    tokenClient.requestAccessToken({ prompt: '' });
+    // If silent auth doesn't fire callback within 3s, show connect button
+    setTimeout(() => {
+      if (!accessToken) showConnectButton();
+    }, 3000);
   }
 });
 
