@@ -907,8 +907,11 @@ const SCOPES = 'https://www.googleapis.com/auth/drive.file';
 const DRIVE_FILENAME = 'bricks-backup.json';
 
 let tokenClient;
+let accessToken = null;
 let driveFileId = null;
 let isSyncing = false;
+
+function gapi_token() { return accessToken; }
 
 function initGoogleAuth() {
   tokenClient = google.accounts.oauth2.initTokenClient({
@@ -916,6 +919,7 @@ function initGoogleAuth() {
     scope: SCOPES,
     callback: async (resp) => {
       if (resp.error) { setDriveStatus('error', 'Auth failed'); return; }
+      accessToken = resp.access_token;
       await findOrCreateDriveFile();
     },
   });
