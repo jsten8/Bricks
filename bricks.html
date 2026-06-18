@@ -341,7 +341,13 @@
       </div>
       <div class="field">
         <label>Bricks</label>
-        <input type="number" id="input-bricks" min="0.5" max="12" step="0.5" value="1">
+        <div style="display:flex;align-items:center;gap:6px;">
+          <input type="number" id="input-bricks" min="0.01" max="720" step="0.5" value="1" style="flex:1;">
+          <div id="unit-toggle" style="display:flex;border:1px solid var(--border);border-radius:7px;overflow:hidden;font-size:12px;font-family:'DM Mono',monospace;">
+            <button id="unit-b" onclick="setUnit('b')" style="padding:6px 10px;background:var(--text);color:var(--bg);border:none;cursor:pointer;font-family:'DM Mono',monospace;font-size:12px;">b</button>
+            <button id="unit-min" onclick="setUnit('min')" style="padding:6px 10px;background:none;color:var(--muted);border:none;cursor:pointer;font-family:'DM Mono',monospace;font-size:12px;">min</button>
+          </div>
+        </div>
       </div>
     </div>
     <div class="field" style="margin-top:12px">
@@ -514,24 +520,45 @@ function thisMonth() {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
 }
 
+// ── Unit toggle ──
+let currentUnit = 'b';
+function setUnit(unit) {
+  currentUnit = unit;
+  const bBtn = document.getElementById('unit-b');
+  const mBtn = document.getElementById('unit-min');
+  const input = document.getElementById('input-bricks');
+  if (unit === 'b') {
+    bBtn.style.background = 'var(--text)'; bBtn.style.color = 'var(--bg)';
+    mBtn.style.background = 'none'; mBtn.style.color = 'var(--muted)';
+    input.step = '0.5'; input.max = '12';
+  } else {
+    mBtn.style.background = 'var(--text)'; mBtn.style.color = 'var(--bg)';
+    bBtn.style.background = 'none'; bBtn.style.color = 'var(--muted)';
+    input.step = '5'; input.max = '720';
+  }
+  input.value = unit === 'b' ? '1' : '60';
+}
+
 // ── Log ──
 async function logBrick() {
   const date = document.getElementById('input-date').value;
   const project = document.getElementById('input-project').value;
-  const bricks = parseFloat(document.getElementById('input-bricks').value);
+  const rawVal = parseFloat(document.getElementById('input-bricks').value);
   const note = document.getElementById('input-note').value.trim();
 
-  if (!date || !project || isNaN(bricks) || bricks <= 0) {
+  if (!date || !project || isNaN(rawVal) || rawVal <= 0) {
     showToast('Fill in all fields');
     return;
   }
 
+  const bricks = currentUnit === 'min' ? Math.round((rawVal / 60) * 100) / 100 : rawVal;
+
   entries.unshift({ id: Date.now(), date, project, bricks, note });
   await saveEntries(entries);
   render();
-  showToast(`${bricks} brick${bricks !== 1 ? 's' : ''} logged`);
+  showToast(`${bricks}b logged`);
 
-  document.getElementById('input-bricks').value = 1;
+  setUnit('b');
   document.getElementById('input-note').value = '';
 }
 
