@@ -265,7 +265,10 @@
     <span class="nav-icon">📈</span>
     <span class="nav-label">Net worth</span>
   </button>
-  <span style="margin-left:auto;font-family:'DM Mono',monospace;font-size:11px;color:var(--text)">v1.9</span>
+  <div style="margin-left:auto;display:flex;align-items:center;gap:12px;">
+    <span id="drive-status" class="drive-status"></span>
+    <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text)">v2.0</span>
+  </div>
 </nav>
 
 <!-- ══ BRICKS PANEL ══ -->
@@ -279,7 +282,6 @@
         <p style="color:var(--muted);font-size:13px;margin-top:4px">deep work log</p>
       </div>
       <div style="display:flex;align-items:center;gap:10px;margin-top:4px">
-        <span id="drive-status" class="drive-status"></span>
         <button onclick="exportData()" class="btn-export">↓ Export</button>
       </div>
     </div>
