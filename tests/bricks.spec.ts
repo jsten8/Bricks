@@ -52,7 +52,8 @@ test.describe('Bricks app', () => {
   test('stats update after logging a brick', async ({ page }) => {
     await openFresh(page);
 
-    await page.fill('#input-date', '2026-06-20');
+    const todayStr = new Date().toISOString().split('T')[0];
+    await page.fill('#input-date', todayStr);
     await page.fill('#input-bricks', '3');
     await page.click('.btn-log');
 

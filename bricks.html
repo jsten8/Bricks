@@ -826,10 +826,10 @@ function renderProjectList() {
 }
 
 function exportData() {
-  const payload={exported:new Date().toISOString(),entries,projects:PROJECTS};
+  const payload={exported:new Date().toISOString(),entries,projects:PROJECTS,nwCheckins,nwCalcs};
   const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
   const url=URL.createObjectURL(blob);
-  const a=document.createElement('a'); a.href=url; a.download=`bricks-backup-${today()}.json`; a.click();
+  const a=document.createElement('a'); a.href=url; a.download=`jake-suite-backup-${today()}.json`; a.click();
   URL.revokeObjectURL(url); localStorage.setItem('bricks_last_export',today()); showToast('Backup downloaded');
 }
 
@@ -860,7 +860,7 @@ function setDriveStatus(state,label) {
 }
 function showConnectButton() {
   const el=document.getElementById('drive-status');
-  const label=localStorage.getItem('bricks_drive_connected')?'Reconnect Drive':'Connect Drive';
+  const label='Save All Data';
   if(el) el.innerHTML=`<button onclick="signInAndSync()" style="background:none;border:1px solid var(--border);border-radius:5px;padding:3px 10px;font-size:11px;color:var(--muted);cursor:pointer;font-family:'DM Sans',sans-serif;">${label}</button>`;
 }
 function gapi_token() { return accessToken || ''; }
@@ -882,7 +882,12 @@ async function createDriveFile() {
   const res=await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart',{method:'POST',headers:{Authorization:`Bearer ${gapi_token()}`},body:form});
   const data=await res.json(); driveFileId=data.id; setDriveStatus('synced','Saved to Drive');
 }
-function buildPayload() { return JSON.stringify({exported:new Date().toISOString(),entries,projects:PROJECTS},null,2); }
+function buildPayload() {
+  let nwChk=[], nwClc={};
+  try { const r=localStorage.getItem('nw_checkins_v1'); if(r) nwChk=JSON.parse(r); } catch {}
+  try { const r=localStorage.getItem('nw_calcs_v1'); if(r) nwClc=JSON.parse(r); } catch {}
+  return JSON.stringify({exported:new Date().toISOString(),entries,projects:PROJECTS,nwCheckins:nwChk,nwCalcs:nwClc},null,2);
+}
 async function syncToDrive() {
   if(!driveFileId||isSyncing)return; isSyncing=true; setDriveStatus('syncing','Saving...');
   try {
