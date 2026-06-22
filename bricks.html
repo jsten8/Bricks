@@ -265,7 +265,7 @@
     <span class="nav-icon">📈</span>
     <span class="nav-label">Net worth</span>
   </button>
-  <span style="margin-left:auto;font-family:'DM Mono',monospace;font-size:11px;color:var(--text)">v1.6</span>
+  <span style="margin-left:auto;font-family:'DM Mono',monospace;font-size:11px;color:var(--text)">v1.7</span>
 </nav>
 
 <!-- ══ BRICKS PANEL ══ -->
@@ -1041,8 +1041,8 @@ function nwLoadCheckinForm(idx) {
   const pos = idx + 1; // 1-based, newest=1
   document.getElementById('nw-nav-label').textContent = c.label;
   document.getElementById('nw-nav-sub').textContent = `Check-in ${pos} of ${total} — editing this record`;
-  document.getElementById('nw-nav-prev').style.opacity = idx < total - 1 ? '1' : '0.3';
-  document.getElementById('nw-nav-next').style.opacity = idx > 0 ? '1' : '0.3';
+  document.getElementById('nw-nav-prev').style.opacity = idx > 0 ? '1' : '0.3';
+  document.getElementById('nw-nav-next').style.opacity = idx < total - 1 ? '1' : '0.3';
 
   nwRecalc();
 }
