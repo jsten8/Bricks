@@ -265,7 +265,7 @@
     <span class="nav-icon">📈</span>
     <span class="nav-label">Net worth</span>
   </button>
-  <span style="margin-left:auto;font-family:'DM Mono',monospace;font-size:11px;color:var(--text)">v1.4</span>
+  <span style="margin-left:auto;font-family:'DM Mono',monospace;font-size:11px;color:var(--text)">v1.5</span>
 </nav>
 
 <!-- ══ BRICKS PANEL ══ -->
@@ -987,16 +987,10 @@ let nwCurrentEditIdx = null; // null = new check-in, number = editing existing
 
 function nwNavStep(dir) {
   if (nwCheckins.length === 0) return;
-  if (nwCurrentEditIdx === null) {
-    // Currently on "new" — step back goes to most recent (index 0)
-    if (dir === -1) nwCurrentEditIdx = 0;
-    else return;
-  } else {
-    const next = nwCurrentEditIdx + dir;
-    if (next < 0) { nwCurrentEditIdx = null; nwLoadCheckinForm(null); return; }
-    if (next >= nwCheckins.length) return;
-    nwCurrentEditIdx = next;
-  }
+  const current = nwCurrentEditIdx === null ? -1 : nwCurrentEditIdx;
+  const next = current + dir;
+  if (next < 0 || next >= nwCheckins.length) return;
+  nwCurrentEditIdx = next;
   nwLoadCheckinForm(nwCurrentEditIdx);
 }
 
