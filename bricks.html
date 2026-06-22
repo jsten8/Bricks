@@ -265,7 +265,7 @@
     <span class="nav-icon">📈</span>
     <span class="nav-label">Net worth</span>
   </button>
-  <span style="margin-left:auto;font-family:'DM Mono',monospace;font-size:11px;color:var(--text)">v1.5</span>
+  <span style="margin-left:auto;font-family:'DM Mono',monospace;font-size:11px;color:var(--text)">v1.6</span>
 </nav>
 
 <!-- ══ BRICKS PANEL ══ -->
@@ -382,24 +382,27 @@
       <h1 style="font-family:'DM Mono',monospace;font-size:28px;font-weight:500;letter-spacing:-0.5px">net worth</h1>
       <p style="color:var(--muted);font-size:13px;margin-top:4px">personal finance tracker</p>
     </div>
-    <div class="nw-header-right" id="nw-period-display">
-      <div class="nw-period-label">Check-in date</div>
-      <input type="date" id="nw-checkin-date" style="margin-top:2px;padding:5px 8px;border:1px solid var(--border);border-radius:7px;font-family:'DM Sans',sans-serif;font-size:13px;background:var(--bg);color:var(--text);outline:none;text-align:right;" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
-      <div class="nw-period-label" style="margin-top:8px">Previous check-in</div>
-      <div class="nw-period-date" id="nw-prev-date">—</div>
-    </div>
   </div>
 
   <!-- Check-in navigator -->
-  <div id="nw-nav-bar" style="display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 16px;margin-bottom:24px;">
-    <button onclick="nwNavStep(-1)" id="nw-nav-prev" style="background:none;border:1px solid var(--border);border-radius:6px;width:32px;height:32px;font-size:16px;cursor:pointer;color:var(--text);display:flex;align-items:center;justify-content:center;flex-shrink:0;">‹</button>
-    <div style="flex:1;text-align:center;">
-      <div id="nw-nav-label" style="font-size:13px;font-weight:500;color:var(--text)">New check-in</div>
-      <div id="nw-nav-sub" style="font-size:11px;color:var(--muted);margin-top:1px">Enter values for any date — today, past, or future</div>
+  <div id="nw-nav-bar" style="background:var(--surface);border:1px solid var(--border);border-radius:10px;margin-bottom:16px;overflow:hidden;">
+    <div style="display:flex;align-items:center;gap:10px;padding:12px 16px;">
+      <button onclick="nwNavStep(-1)" id="nw-nav-prev" style="background:none;border:1px solid var(--border);border-radius:6px;width:32px;height:32px;font-size:16px;cursor:pointer;color:var(--text);display:flex;align-items:center;justify-content:center;flex-shrink:0;">‹</button>
+      <div style="flex:1;text-align:center;">
+        <div id="nw-nav-label" style="font-size:13px;font-weight:500;color:var(--text)">New check-in</div>
+        <div id="nw-nav-sub" style="font-size:11px;color:var(--muted);margin-top:1px">Enter values for any date — today, past, or future</div>
+      </div>
+      <button onclick="nwNavStep(1)" id="nw-nav-next" style="background:none;border:1px solid var(--border);border-radius:6px;width:32px;height:32px;font-size:16px;cursor:pointer;color:var(--text);display:flex;align-items:center;justify-content:center;flex-shrink:0;">›</button>
+      <div style="width:1px;height:32px;background:var(--border);margin:0 4px;flex-shrink:0;"></div>
+      <button onclick="nwNewCheckin()" style="padding:8px 16px;background:var(--text);color:white;border:none;border-radius:7px;font-size:12px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;white-space:nowrap;flex-shrink:0;">+ New</button>
     </div>
-    <button onclick="nwNavStep(1)" id="nw-nav-next" style="background:none;border:1px solid var(--border);border-radius:6px;width:32px;height:32px;font-size:16px;cursor:pointer;color:var(--text);display:flex;align-items:center;justify-content:center;flex-shrink:0;">›</button>
-    <div style="width:1px;height:32px;background:var(--border);margin:0 4px;flex-shrink:0;"></div>
-    <button onclick="nwNewCheckin()" style="padding:8px 16px;background:var(--text);color:white;border:none;border-radius:7px;font-size:12px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;white-space:nowrap;flex-shrink:0;">+ New</button>
+    <div style="border-top:1px solid var(--border);padding:10px 16px;display:flex;align-items:center;justify-content:space-between;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span style="font-size:12px;color:var(--muted)">Date</span>
+        <input type="date" id="nw-checkin-date" style="padding:4px 8px;border:1px solid var(--border);border-radius:6px;font-family:'DM Sans',sans-serif;font-size:13px;background:var(--bg);color:var(--text);outline:none;" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
+      </div>
+      <div style="font-size:12px;color:var(--muted);text-align:right;">Previous check-in: <span id="nw-prev-date" style="color:var(--text);font-weight:500">—</span></div>
+    </div>
   </div>
 
   <div class="nw-metrics">
