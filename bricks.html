@@ -265,7 +265,7 @@
     <span class="nav-icon">📈</span>
     <span class="nav-label">Net worth</span>
   </button>
-  <span style="margin-left:auto;font-family:'DM Mono',monospace;font-size:11px;color:var(--text)">v1.7</span>
+  <span style="margin-left:auto;font-family:'DM Mono',monospace;font-size:11px;color:var(--text)">v1.8</span>
 </nav>
 
 <!-- ══ BRICKS PANEL ══ -->
@@ -394,6 +394,7 @@
       </div>
       <button onclick="nwNavStep(1)" id="nw-nav-next" style="background:none;border:1px solid var(--border);border-radius:6px;width:32px;height:32px;font-size:16px;cursor:pointer;color:var(--text);display:flex;align-items:center;justify-content:center;flex-shrink:0;">›</button>
       <div style="width:1px;height:32px;background:var(--border);margin:0 4px;flex-shrink:0;"></div>
+      <button id="nw-btn-edit-entry" onclick="nwEditEntry()" style="display:none;padding:8px 16px;background:none;border:1px solid var(--border);border-radius:7px;font-size:12px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;white-space:nowrap;flex-shrink:0;color:var(--text);">Edit entry</button>
       <button onclick="nwNewCheckin()" style="padding:8px 16px;background:var(--text);color:white;border:none;border-radius:7px;font-size:12px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;white-space:nowrap;flex-shrink:0;">+ New</button>
     </div>
     <div style="border-top:1px solid var(--border);padding:10px 16px;display:flex;align-items:center;justify-content:space-between;">
@@ -988,6 +989,34 @@ function nwPopulateFromLatest() {
 
 let nwCurrentEditIdx = null; // null = new check-in, number = editing existing
 
+function nwSetLocked(locked) {
+  const fields = [
+    document.getElementById('nw-checkin-date'),
+    document.getElementById('nw-overall-commentary'),
+    ...NW_ASSET_KEYS.flatMap(k => [document.getElementById('nwval-' + k), document.getElementById('nwcom-' + k)]),
+    ...NW_LIAB_KEYS.flatMap(k => [document.getElementById('nwval-' + k), document.getElementById('nwcom-' + k)]),
+  ].filter(Boolean);
+  fields.forEach(el => {
+    el.disabled = locked;
+    el.style.opacity = locked ? '0.55' : '';
+    el.style.cursor = locked ? 'default' : '';
+  });
+  const saveBtn = document.querySelector('.btn-checkin');
+  if (saveBtn) saveBtn.style.display = locked ? 'none' : '';
+  const editBtn = document.getElementById('nw-btn-edit-entry');
+  if (editBtn) editBtn.style.display = locked ? '' : 'none';
+  if (locked) {
+    document.getElementById('nw-nav-sub').textContent =
+      document.getElementById('nw-nav-sub').textContent.replace('— editing this record', '— view only');
+  }
+}
+
+function nwEditEntry() {
+  nwSetLocked(false);
+  const sub = document.getElementById('nw-nav-sub');
+  if (sub) sub.textContent = sub.textContent.replace('— view only', '— editing this record');
+}
+
 function nwNavStep(dir) {
   if (nwCheckins.length === 0) return;
   const current = nwCurrentEditIdx === null ? -1 : nwCurrentEditIdx;
@@ -999,7 +1028,7 @@ function nwNavStep(dir) {
 
 function nwLoadCheckinForm(idx) {
   if (idx === null) {
-    // New check-in mode — clear form
+    // New check-in mode — clear form, unlocked
     nwCurrentEditIdx = null;
     [...NW_ASSET_KEYS, ...NW_LIAB_KEYS].forEach(key => {
       const val = document.getElementById('nwval-' + key);
@@ -1015,6 +1044,7 @@ function nwLoadCheckinForm(idx) {
     document.getElementById('nw-nav-sub').textContent = 'Enter values for any date — today, past, or future';
     document.getElementById('nw-nav-prev').style.opacity = nwCheckins.length > 0 ? '1' : '0.3';
     document.getElementById('nw-nav-next').style.opacity = '0.3';
+    nwSetLocked(false);
     nwRecalc();
     return;
   }
@@ -1038,12 +1068,12 @@ function nwLoadCheckinForm(idx) {
   if (dateInput) dateInput.value = c.date;
 
   const total = nwCheckins.length;
-  const pos = idx + 1; // 1-based, newest=1
+  const pos = idx + 1;
   document.getElementById('nw-nav-label').textContent = c.label;
-  document.getElementById('nw-nav-sub').textContent = `Check-in ${pos} of ${total} — editing this record`;
+  document.getElementById('nw-nav-sub').textContent = `Check-in ${pos} of ${total} — view only`;
   document.getElementById('nw-nav-prev').style.opacity = idx > 0 ? '1' : '0.3';
   document.getElementById('nw-nav-next').style.opacity = idx < total - 1 ? '1' : '0.3';
-
+  nwSetLocked(true);
   nwRecalc();
 }
 
@@ -1174,6 +1204,7 @@ function nwSaveCheckin() {
 
   nwSaveData();
   nwRecalc();
+  nwSetLocked(true);
   showToast('Check-in saved');
 }
 

@@ -509,6 +509,8 @@ test.describe('Net Worth — check-in data structure', () => {
     await page.fill('#nwval-shares', '10000');
     await page.click('button.btn-checkin');
 
+    // Form is locked after save — unlock to edit again
+    await page.click('#nw-btn-edit-entry');
     await page.fill('#nwval-shares', '12000');
     await page.click('button.btn-checkin');
 
