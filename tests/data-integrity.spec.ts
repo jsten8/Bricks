@@ -604,6 +604,221 @@ test.describe('Net Worth — check-in data structure', () => {
 });
 
 // ─────────────────────────────────────────────
+// NET WORTH — data integrity edge cases
+// ─────────────────────────────────────────────
+test.describe('Net Worth — data integrity edge cases', () => {
+
+  async function openNetWorth(page: Page) {
+    await openFresh(page);
+    await page.click('#nav-networth');
+    await page.waitForTimeout(300);
+  }
+
+  test('overall commentary survives save and full page reload', async ({ page }) => {
+    await openNetWorth(page);
+
+    await page.fill('#nwval-shares', '5000');
+    await page.fill('#nw-overall-commentary', 'This is my test commentary');
+    await page.click('button.btn-checkin');
+
+    // Reload the page entirely — simulates user returning
+    await page.reload();
+    await page.waitForLoadState('networkidle');
+
+    // Navigate to Net Worth
+    await page.click('#nav-networth');
+    await page.waitForTimeout(300);
+
+    // Commentary must be visible in the form (it loads locked, showing the saved value)
+    await expect(page.locator('#nw-overall-commentary')).toHaveValue('This is my test commentary');
+
+    // Also verify it's in localStorage
+    const raw = await page.evaluate(() => localStorage.getItem('nw_checkins_v1'));
+    const checkins = JSON.parse(raw!);
+    expect(checkins[0].commentary).toBe('This is my test commentary');
+  });
+
+  test('adding a new check-in on a different date preserves existing (via + New button)', async ({ page }) => {
+    await openFresh(page);
+
+    const existing = [{
+      id: 5000002,
+      date: '2026-04-15',
+      label: 'Apr 2026',
+      nw: 145000,
+      nwExSuper: 25000,
+      commentary: 'Must survive NW test',
+      assets: { shares: 7000, property: 200000, cashEm: 3000, cashOff: 0, super: 120000 },
+      liabs: { mortgage: 185000, hecs: 0, lucas: 0 },
+      assetCommentary: {},
+      liabCommentary: {},
+    }];
+    await page.evaluate((data) => {
+      localStorage.setItem('nw_checkins_v1', JSON.stringify(data));
+    }, existing);
+
+    await page.click('#nav-networth');
+    await page.waitForTimeout(300);
+
+    // Create a new check-in on a different date
+    await page.click('button:has-text("+ New")');
+    await page.fill('#nw-checkin-date', '2026-06-22');
+    await page.fill('#nwval-shares', '9000');
+    await page.click('button.btn-checkin');
+
+    const raw = await page.evaluate(() => localStorage.getItem('nw_checkins_v1'));
+    const checkins = JSON.parse(raw!);
+
+    // Both check-ins must exist
+    expect(checkins).toHaveLength(2);
+
+    // Original untouched
+    const original = checkins.find((c: any) => c.id === 5000002);
+    expect(original).toBeTruthy();
+    expect(original.commentary).toBe('Must survive NW test');
+    expect(original.assets.shares).toBe(7000);
+    expect(original.nw).toBe(145000);
+
+    // New one present
+    const newOne = checkins.find((c: any) => c.date === '2026-06-22');
+    expect(newOne).toBeTruthy();
+    expect(newOne.assets.shares).toBe(9000);
+  });
+
+  test('per-row asset commentary saves to storage via UI', async ({ page }) => {
+    await openNetWorth(page);
+
+    await page.fill('#nwval-shares', '10000');
+    await page.fill('#nwcom-shares', 'Bought more ETFs this month');
+    await page.fill('#nwcom-mortgage', 'Regular repayment');
+    await page.click('button.btn-checkin');
+
+    const raw = await page.evaluate(() => localStorage.getItem('nw_checkins_v1'));
+    const checkins = JSON.parse(raw!);
+    const c = checkins[0];
+
+    expect(c.assetCommentary).toHaveProperty('shares');
+    expect(c.assetCommentary.shares).toBe('Bought more ETFs this month');
+    expect(c.liabCommentary).toHaveProperty('mortgage');
+    expect(c.liabCommentary.mortgage).toBe('Regular repayment');
+  });
+
+});
+
+// ─────────────────────────────────────────────
+// DRIVE BACKUP — buildPayload completeness
+// ─────────────────────────────────────────────
+test.describe('Drive backup — buildPayload completeness', () => {
+
+  test('buildPayload includes all Bricks entries in the backup', async ({ page }) => {
+    await openFresh(page);
+
+    // Log two bricks entries via UI
+    await page.fill('#input-date', '2026-06-01');
+    await page.fill('#input-bricks', '3');
+    await page.fill('#input-note', 'Backup entry A');
+    await page.click('.btn-log');
+
+    await page.fill('#input-date', '2026-06-15');
+    await page.fill('#input-bricks', '1.5');
+    await page.fill('#input-note', 'Backup entry B');
+    await page.click('.btn-log');
+
+    const payload = await page.evaluate(() => (window as any).buildPayload());
+    expect(typeof payload).toBe('string');
+    const data = JSON.parse(payload);
+
+    // Top-level shape
+    expect(data).toHaveProperty('exported');
+    expect(data).toHaveProperty('entries');
+    expect(data).toHaveProperty('projects');
+    expect(data).toHaveProperty('nwCheckins');
+    expect(data).toHaveProperty('nwCalcs');
+
+    // Bricks entries correct
+    expect(Array.isArray(data.entries)).toBe(true);
+    expect(data.entries).toHaveLength(2);
+    expect(data.entries.some((e: any) => e.note === 'Backup entry A')).toBe(true);
+    expect(data.entries.some((e: any) => e.note === 'Backup entry B')).toBe(true);
+  });
+
+  test('buildPayload includes all Net Worth check-ins in the backup', async ({ page }) => {
+    await openFresh(page);
+
+    // Seed NW data directly (Drive backup reads from localStorage)
+    const nwSeed = [
+      { id: 6000001, date: '2026-06-20', label: 'Jun 2026', nw: 164770, nwExSuper: 45412, commentary: 'NW backup test', assets: { shares: 8912, property: 248333, cashEm: 1630, cashOff: 8000, super: 119358 }, liabs: { mortgage: 186226, hecs: 18582, lucas: 16655 }, assetCommentary: {}, liabCommentary: {} },
+      { id: 6000002, date: '2026-04-15', label: 'Apr 2026', nw: 145621, nwExSuper: 26264, commentary: '', assets: { shares: 7540, property: 248333, cashEm: 4618, cashOff: 0, super: 119358 }, liabs: { mortgage: 198415, hecs: 19557, lucas: 16255 }, assetCommentary: {}, liabCommentary: {} },
+    ];
+    await page.evaluate((data) => {
+      localStorage.setItem('nw_checkins_v1', JSON.stringify(data));
+    }, nwSeed);
+
+    await page.reload();
+    await page.waitForLoadState('networkidle');
+
+    const payload = await page.evaluate(() => (window as any).buildPayload());
+    const data = JSON.parse(payload);
+
+    expect(Array.isArray(data.nwCheckins)).toBe(true);
+    expect(data.nwCheckins).toHaveLength(2);
+
+    const jun = data.nwCheckins.find((c: any) => c.id === 6000001);
+    expect(jun).toBeTruthy();
+    expect(jun.nw).toBe(164770);
+    expect(jun.commentary).toBe('NW backup test');
+    expect(jun.assets.shares).toBe(8912);
+    expect(jun.liabs.mortgage).toBe(186226);
+
+    const apr = data.nwCheckins.find((c: any) => c.id === 6000002);
+    expect(apr).toBeTruthy();
+    expect(apr.assets.shares).toBe(7540);
+  });
+
+  test('buildPayload captures both apps simultaneously — no data dropped', async ({ page }) => {
+    await openFresh(page);
+
+    // Seed both Bricks and NW data
+    const bricksSeed = [
+      { id: 7500001, date: '2026-06-01', project: 'CVET Career', bricks: 2, note: 'Concurrent Bricks test' },
+    ];
+    const nwSeed = [
+      { id: 7500002, date: '2026-06-01', label: 'Jun 2026', nw: 50000, nwExSuper: 10000, commentary: 'Concurrent NW test', assets: { shares: 5000, property: 100000, cashEm: 0, cashOff: 0, super: 40000 }, liabs: { mortgage: 95000, hecs: 0, lucas: 0 }, assetCommentary: {}, liabCommentary: {} },
+    ];
+    await page.evaluate(({ b, nw }) => {
+      localStorage.setItem('bricks_log_v1', JSON.stringify(b));
+      localStorage.setItem('nw_checkins_v1', JSON.stringify(nw));
+    }, { b: bricksSeed, nw: nwSeed });
+
+    await page.reload();
+    await page.waitForLoadState('networkidle');
+
+    const payload = await page.evaluate(() => (window as any).buildPayload());
+    const data = JSON.parse(payload);
+
+    // Bricks data present
+    expect(data.entries).toHaveLength(1);
+    expect(data.entries[0].id).toBe(7500001);
+    expect(data.entries[0].note).toBe('Concurrent Bricks test');
+
+    // NW data present
+    expect(data.nwCheckins).toHaveLength(1);
+    expect(data.nwCheckins[0].id).toBe(7500002);
+    expect(data.nwCheckins[0].commentary).toBe('Concurrent NW test');
+    expect(data.nwCheckins[0].nw).toBe(50000);
+
+    // Neither is empty or null
+    expect(data.entries.length).toBeGreaterThan(0);
+    expect(data.nwCheckins.length).toBeGreaterThan(0);
+
+    // exported timestamp is present and a valid ISO string
+    expect(typeof data.exported).toBe('string');
+    expect(data.exported).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+  });
+
+});
+
+// ─────────────────────────────────────────────
 // CROSS-APP — namespace isolation
 // ─────────────────────────────────────────────
 test.describe('Cross-app namespace isolation', () => {
