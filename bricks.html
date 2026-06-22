@@ -265,7 +265,7 @@
     <span class="nav-icon">📈</span>
     <span class="nav-label">Net worth</span>
   </button>
-  <span style="margin-left:auto;font-family:'DM Mono',monospace;font-size:11px;color:var(--text)">v1.2</span>
+  <span style="margin-left:auto;font-family:'DM Mono',monospace;font-size:11px;color:var(--text)">v1.3</span>
 </nav>
 
 <!-- ══ BRICKS PANEL ══ -->
@@ -388,6 +388,15 @@
       <div class="nw-period-label" style="margin-top:8px">Previous check-in</div>
       <div class="nw-period-date" id="nw-prev-date">—</div>
     </div>
+  </div>
+
+  <!-- New check-in prompt -->
+  <div id="nw-new-checkin-bar" style="display:flex;align-items:center;justify-content:space-between;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 20px;margin-bottom:24px;">
+    <div>
+      <div style="font-size:13px;font-weight:500;color:var(--text)">Ready to record a new check-in?</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:2px">You can enter values for any date — today, past, or future.</div>
+    </div>
+    <button onclick="nwNewCheckin()" style="padding:9px 20px;background:var(--text);color:white;border:none;border-radius:7px;font-size:13px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;white-space:nowrap;flex-shrink:0;margin-left:16px;">+ New check-in</button>
   </div>
 
   <div class="nw-metrics">
@@ -987,6 +996,28 @@ function nwPopulateFromLatest() {
 
   const overallEl = document.getElementById('nw-overall-commentary');
   if (overallEl) overallEl.value = latest ? (latest.commentary || '') : '';
+}
+
+function nwNewCheckin() {
+  // Clear all inputs to blank
+  [...NW_ASSET_KEYS, ...NW_LIAB_KEYS].forEach(key => {
+    const val = document.getElementById('nwval-' + key);
+    if (val) val.value = '';
+    const com = document.getElementById('nwcom-' + key);
+    if (com) com.value = '';
+  });
+  const overall = document.getElementById('nw-overall-commentary');
+  if (overall) overall.value = '';
+
+  // Set date to today
+  const dateInput = document.getElementById('nw-checkin-date');
+  if (dateInput) dateInput.value = new Date().toISOString().split('T')[0];
+
+  // Recalc so metrics reset to $0
+  nwRecalc();
+
+  // Scroll to date input so user knows to confirm/change the date
+  dateInput?.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
 function nwToggleRow(key) {
