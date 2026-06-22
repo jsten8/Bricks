@@ -265,7 +265,7 @@
     <span class="nav-icon">📈</span>
     <span class="nav-label">Net worth</span>
   </button>
-  <span style="margin-left:auto;font-family:'DM Mono',monospace;font-size:11px;color:var(--text)">v1.3</span>
+  <span style="margin-left:auto;font-family:'DM Mono',monospace;font-size:11px;color:var(--text)">v1.4</span>
 </nav>
 
 <!-- ══ BRICKS PANEL ══ -->
@@ -390,13 +390,16 @@
     </div>
   </div>
 
-  <!-- New check-in prompt -->
-  <div id="nw-new-checkin-bar" style="display:flex;align-items:center;justify-content:space-between;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 20px;margin-bottom:24px;">
-    <div>
-      <div style="font-size:13px;font-weight:500;color:var(--text)">Ready to record a new check-in?</div>
-      <div style="font-size:12px;color:var(--muted);margin-top:2px">You can enter values for any date — today, past, or future.</div>
+  <!-- Check-in navigator -->
+  <div id="nw-nav-bar" style="display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 16px;margin-bottom:24px;">
+    <button onclick="nwNavStep(-1)" id="nw-nav-prev" style="background:none;border:1px solid var(--border);border-radius:6px;width:32px;height:32px;font-size:16px;cursor:pointer;color:var(--text);display:flex;align-items:center;justify-content:center;flex-shrink:0;">‹</button>
+    <div style="flex:1;text-align:center;">
+      <div id="nw-nav-label" style="font-size:13px;font-weight:500;color:var(--text)">New check-in</div>
+      <div id="nw-nav-sub" style="font-size:11px;color:var(--muted);margin-top:1px">Enter values for any date — today, past, or future</div>
     </div>
-    <button onclick="nwNewCheckin()" style="padding:9px 20px;background:var(--text);color:white;border:none;border-radius:7px;font-size:13px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;white-space:nowrap;flex-shrink:0;margin-left:16px;">+ New check-in</button>
+    <button onclick="nwNavStep(1)" id="nw-nav-next" style="background:none;border:1px solid var(--border);border-radius:6px;width:32px;height:32px;font-size:16px;cursor:pointer;color:var(--text);display:flex;align-items:center;justify-content:center;flex-shrink:0;">›</button>
+    <div style="width:1px;height:32px;background:var(--border);margin:0 4px;flex-shrink:0;"></div>
+    <button onclick="nwNewCheckin()" style="padding:8px 16px;background:var(--text);color:white;border:none;border-radius:7px;font-size:12px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;white-space:nowrap;flex-shrink:0;">+ New</button>
   </div>
 
   <div class="nw-metrics">
@@ -963,61 +966,92 @@ function nwLoadCalcs() {
 }
 
 function nwPopulateFromLatest() {
-  const latest = nwCheckins[0] || null;
   const prev = nwCheckins[1] || null;
-
-  // Update period display
   const fmtDate = d => {
     if (!d) return '—';
     const [y,m,day] = d.split('-');
     return `${parseInt(day)} ${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][parseInt(m)-1]} ${y}`;
   };
-
-  // Set date input to latest check-in date, or today if no check-ins yet
-  const dateInput = document.getElementById('nw-checkin-date');
-  if (dateInput) dateInput.value = latest ? latest.date : new Date().toISOString().split('T')[0];
   document.getElementById('nw-prev-date').textContent = prev ? fmtDate(prev.date) : '—';
+  // Start on most recent check-in if one exists, otherwise blank
+  if (nwCheckins.length > 0) {
+    nwCurrentEditIdx = 0;
+    nwLoadCheckinForm(0);
+  } else {
+    nwCurrentEditIdx = null;
+    nwLoadCheckinForm(null);
+  }
+}
 
-  // Populate inputs
+let nwCurrentEditIdx = null; // null = new check-in, number = editing existing
+
+function nwNavStep(dir) {
+  if (nwCheckins.length === 0) return;
+  if (nwCurrentEditIdx === null) {
+    // Currently on "new" — step back goes to most recent (index 0)
+    if (dir === -1) nwCurrentEditIdx = 0;
+    else return;
+  } else {
+    const next = nwCurrentEditIdx + dir;
+    if (next < 0) { nwCurrentEditIdx = null; nwLoadCheckinForm(null); return; }
+    if (next >= nwCheckins.length) return;
+    nwCurrentEditIdx = next;
+  }
+  nwLoadCheckinForm(nwCurrentEditIdx);
+}
+
+function nwLoadCheckinForm(idx) {
+  if (idx === null) {
+    // New check-in mode — clear form
+    nwCurrentEditIdx = null;
+    [...NW_ASSET_KEYS, ...NW_LIAB_KEYS].forEach(key => {
+      const val = document.getElementById('nwval-' + key);
+      if (val) val.value = '';
+      const com = document.getElementById('nwcom-' + key);
+      if (com) com.value = '';
+    });
+    const overall = document.getElementById('nw-overall-commentary');
+    if (overall) overall.value = '';
+    const dateInput = document.getElementById('nw-checkin-date');
+    if (dateInput) dateInput.value = new Date().toISOString().split('T')[0];
+    document.getElementById('nw-nav-label').textContent = 'New check-in';
+    document.getElementById('nw-nav-sub').textContent = 'Enter values for any date — today, past, or future';
+    document.getElementById('nw-nav-prev').style.opacity = nwCheckins.length > 0 ? '1' : '0.3';
+    document.getElementById('nw-nav-next').style.opacity = '0.3';
+    nwRecalc();
+    return;
+  }
+
+  const c = nwCheckins[idx];
   NW_ASSET_KEYS.forEach(key => {
     const el = document.getElementById('nwval-' + key);
-    if (el) el.value = latest ? (latest.assets[key] || '') : '';
+    if (el) el.value = c.assets[key] || '';
     const com = document.getElementById('nwcom-' + key);
-    if (com && latest && latest.assetCommentary) com.value = latest.assetCommentary[key] || '';
-    else if (com) com.value = '';
+    if (com) com.value = (c.assetCommentary && c.assetCommentary[key]) || '';
   });
   NW_LIAB_KEYS.forEach(key => {
     const el = document.getElementById('nwval-' + key);
-    if (el) el.value = latest ? (latest.liabs[key] || '') : '';
+    if (el) el.value = c.liabs[key] || '';
     const com = document.getElementById('nwcom-' + key);
-    if (com && latest && latest.liabCommentary) com.value = latest.liabCommentary[key] || '';
-    else if (com) com.value = '';
+    if (com) com.value = (c.liabCommentary && c.liabCommentary[key]) || '';
   });
+  const overall = document.getElementById('nw-overall-commentary');
+  if (overall) overall.value = c.commentary || '';
+  const dateInput = document.getElementById('nw-checkin-date');
+  if (dateInput) dateInput.value = c.date;
 
-  const overallEl = document.getElementById('nw-overall-commentary');
-  if (overallEl) overallEl.value = latest ? (latest.commentary || '') : '';
+  const total = nwCheckins.length;
+  const pos = idx + 1; // 1-based, newest=1
+  document.getElementById('nw-nav-label').textContent = c.label;
+  document.getElementById('nw-nav-sub').textContent = `Check-in ${pos} of ${total} — editing this record`;
+  document.getElementById('nw-nav-prev').style.opacity = idx < total - 1 ? '1' : '0.3';
+  document.getElementById('nw-nav-next').style.opacity = idx > 0 ? '1' : '0.3';
+
+  nwRecalc();
 }
 
 function nwNewCheckin() {
-  // Clear all inputs to blank
-  [...NW_ASSET_KEYS, ...NW_LIAB_KEYS].forEach(key => {
-    const val = document.getElementById('nwval-' + key);
-    if (val) val.value = '';
-    const com = document.getElementById('nwcom-' + key);
-    if (com) com.value = '';
-  });
-  const overall = document.getElementById('nw-overall-commentary');
-  if (overall) overall.value = '';
-
-  // Set date to today
-  const dateInput = document.getElementById('nw-checkin-date');
-  if (dateInput) dateInput.value = new Date().toISOString().split('T')[0];
-
-  // Recalc so metrics reset to $0
-  nwRecalc();
-
-  // Scroll to date input so user knows to confirm/change the date
-  dateInput?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  nwLoadCheckinForm(null);
 }
 
 function nwToggleRow(key) {
@@ -1126,12 +1160,20 @@ function nwSaveCheckin() {
     liabCommentary,
   };
 
-  // Replace today's check-in if it already exists, otherwise prepend
-  if (nwCheckins.length && nwCheckins[0].date === dateStr) {
+  // If editing an existing check-in, replace it in place
+  if (nwCurrentEditIdx !== null) {
+    nwCheckins[nwCurrentEditIdx] = checkin;
+  } else if (nwCheckins.length && nwCheckins[0].date === dateStr) {
     nwCheckins[0] = checkin;
   } else {
     nwCheckins.unshift(checkin);
+    nwCurrentEditIdx = 0;
   }
+  // Re-sort newest first
+  nwCheckins.sort((a, b) => b.date.localeCompare(a.date));
+  nwCurrentEditIdx = nwCheckins.findIndex(c => c.date === dateStr);
+  // Update nav label
+  nwLoadCheckinForm(nwCurrentEditIdx);
 
   nwSaveData();
   nwRecalc();
