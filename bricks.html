@@ -265,7 +265,7 @@
     <span class="nav-icon">📈</span>
     <span class="nav-label">Net worth</span>
   </button>
-  <span style="margin-left:auto;font-family:'DM Mono',monospace;font-size:11px;color:var(--text)">v1.8</span>
+  <span style="margin-left:auto;font-family:'DM Mono',monospace;font-size:11px;color:var(--text)">v1.9</span>
 </nav>
 
 <!-- ══ BRICKS PANEL ══ -->
@@ -998,8 +998,10 @@ function nwSetLocked(locked) {
   ].filter(Boolean);
   fields.forEach(el => {
     el.disabled = locked;
-    el.style.opacity = locked ? '0.55' : '';
+    el.style.opacity = '';
     el.style.cursor = locked ? 'default' : '';
+    el.style.background = locked ? 'var(--surface)' : '';
+    el.style.color = locked ? 'var(--text)' : '';
   });
   const saveBtn = document.querySelector('.btn-checkin');
   if (saveBtn) saveBtn.style.display = locked ? 'none' : '';
