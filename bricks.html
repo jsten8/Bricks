@@ -267,7 +267,7 @@
   </button>
   <div style="margin-left:auto;display:flex;align-items:center;gap:12px;">
     <span id="drive-status" class="drive-status"></span>
-    <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text)">v2.1</span>
+    <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text)">v2.2</span>
   </div>
 </nav>
 
@@ -739,9 +739,10 @@ function renderTodaySummary() {
 }
 
 function renderStats() {
-  const total = entries.reduce((s,e)=>s+e.bricks,0);
-  const month = entries.filter(e=>e.date.startsWith(thisMonth())).reduce((s,e)=>s+e.bricks,0);
-  const tod = entries.filter(e=>e.date===today()).reduce((s,e)=>s+e.bricks,0);
+  const round2 = n => parseFloat(n.toFixed(2));
+  const total = round2(entries.reduce((s,e)=>s+e.bricks,0));
+  const month = round2(entries.filter(e=>e.date.startsWith(thisMonth())).reduce((s,e)=>s+e.bricks,0));
+  const tod = round2(entries.filter(e=>e.date===today()).reduce((s,e)=>s+e.bricks,0));
   document.getElementById('stat-total').textContent = total;
   document.getElementById('stat-month').textContent = month;
   document.getElementById('stat-today').textContent = tod;
