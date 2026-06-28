@@ -267,7 +267,7 @@
   </button>
   <div style="margin-left:auto;display:flex;align-items:center;gap:12px;">
     <span id="drive-status" class="drive-status"></span>
-    <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text)">v2.2</span>
+    <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text)">v2.3</span>
   </div>
 </nav>
 
@@ -1295,11 +1295,15 @@ function nwRenderSelectedDetail() {
   const c = nwCheckins[nwHistorySelectedIdx];
   const prev = nwCheckins[nwHistorySelectedIdx + 1];
   const diff = prev ? c.nw - prev.nw : null;
+  const pct = (diff !== null && prev.nw !== 0) ? (diff / Math.abs(prev.nw) * 100).toFixed(1) : null;
   const el = document.getElementById('nw-selected-detail');
   if (!el) return;
+  const deltaHtml = diff !== null
+    ? ` <span class="nw-detail-delta ${diff >= 0 ? 'up' : 'down'}">${diff >= 0 ? '↑' : '↓'} ${nwFmtMoney(diff)}${pct !== null ? ` <span style="font-size:11px;opacity:0.7">(${pct}%)</span>` : ''}</span>`
+    : '';
   el.innerHTML = `
     <div class="nw-detail-header">
-      <span class="nw-detail-date">${c.label}${diff !== null ? ` <span class="nw-detail-delta ${diff >= 0 ? 'up' : 'down'}">${diff >= 0 ? '↑' : '↓'} ${nwFmtMoney(diff)}</span>` : ''}</span>
+      <span class="nw-detail-date">${c.label}${deltaHtml}</span>
       <span class="nw-detail-nw">${nwFmtMoney(c.nw)}</span>
     </div>
     <div class="nw-detail-commentary">${c.commentary || ''}</div>
