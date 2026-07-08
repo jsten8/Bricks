@@ -316,7 +316,7 @@
   </button>
   <div style="margin-left:auto;display:flex;align-items:center;gap:12px;">
     <span id="drive-status" class="drive-status"></span>
-    <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text)">v2.4</span>
+    <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text)">v2.5</span>
   </div>
 </nav>
 
@@ -733,6 +733,7 @@
     <div style="position:relative;height:300px;">
       <canvas id="bs-chart"></canvas>
     </div>
+    <div id="bs-selected-detail" style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border);min-height:40px;"></div>
   </div>
 
   <div class="log-section" style="margin-bottom:32px">
@@ -1673,6 +1674,7 @@ const BS_METRICS = [
 let bsEntries = [];
 let bsActiveMetrics = new Set(BS_METRICS.map(m => m.key));
 let bsChart = null;
+let bsSelectedIdx = null;
 
 function bsLoadData() {
   try { const r = localStorage.getItem(BS_KEY); bsEntries = r ? JSON.parse(r) : []; } catch { bsEntries = []; }
@@ -1685,6 +1687,9 @@ function bsSaveData() {
 function bsInit() {
   bsLoadData();
   document.getElementById('bs-date').value = today();
+  const chronological = [...bsEntries].sort((a, b) => new Date(a.date) - new Date(b.date));
+  const allDates = [...new Set(chronological.map(e => e.date))];
+  bsSelectedIdx = allDates.length > 0 ? allDates.length - 1 : null;
   bsRender();
 }
 
@@ -1743,40 +1748,26 @@ function bsRenderChart() {
     });
   });
 
-  // Zero line dataset
-  const zeroDataset = {
-    label: '_zero',
-    data: allDates.map(() => 0),
-    borderColor: 'rgba(0,0,0,0.15)',
-    borderWidth: 1,
-    borderDash: [4, 4],
-    pointRadius: 0,
-    fill: false,
-    tension: 0,
-    order: 99,
-  };
-
   const metricDatasets = BS_METRICS
     .filter(m => bsActiveMetrics.has(m.key))
     .map(m => {
-      // Find first recorded value for this metric (across all dates)
       const firstEntry = chronological.find(e => e[m.key] !== undefined && e[m.key] !== null && e[m.key] !== '');
       const baseVal = firstEntry ? Number(firstEntry[m.key]) : null;
-
       const data = allDates.map(date => {
         const raw = rawLookup[m.key][date];
         if (raw === undefined || baseVal === null || baseVal === 0) return null;
         return parseFloat(((raw - baseVal) / Math.abs(baseVal) * 100).toFixed(2));
       });
-
       return {
         label: m.label,
         data,
         borderColor: m.color,
         backgroundColor: m.color,
-        pointBackgroundColor: m.color,
-        pointRadius: 4,
-        pointHoverRadius: 6,
+        pointBackgroundColor: data.map((_, i) => i === bsSelectedIdx ? m.color : m.color + '80'),
+        pointBorderColor: '#F7F5F2',
+        pointBorderWidth: 2,
+        pointRadius: data.map((_, i) => i === bsSelectedIdx ? 7 : 4),
+        pointHoverRadius: 7,
         borderWidth: 2,
         tension: 0.3,
         fill: false,
@@ -1789,15 +1780,17 @@ function bsRenderChart() {
 
   bsChart = new Chart(ctx, {
     type: 'line',
-    data: { labels: allDates, datasets: [zeroDataset, ...metricDatasets] },
+    data: { labels: allDates, datasets: metricDatasets },
     options: {
       responsive: true,
       maintainAspectRatio: false,
       interaction: { mode: 'index', intersect: false },
+      onClick: (e, els) => {
+        if (els.length) { bsSelectedIdx = els[0].index; bsRenderChart(); bsRenderSelectedDetail(); }
+      },
       plugins: {
         legend: { display: false },
         tooltip: {
-          filter: item => item.dataset.label !== '_zero',
           callbacks: {
             title: items => fmtShort(items[0].label),
             label: item => {
@@ -1815,7 +1808,8 @@ function bsRenderChart() {
           ticks: { font: { family: 'DM Mono', size: 10 }, color: '#9A9088' }
         },
         y: {
-          grid: { color: '#E8E4DE' },
+          grid: { color: '#E8E4DE', drawBorder: false },
+          border: { dash: [4, 4] },
           ticks: {
             font: { family: 'DM Mono', size: 10 },
             color: '#9A9088',
@@ -1825,6 +1819,42 @@ function bsRenderChart() {
       }
     }
   });
+  bsRenderSelectedDetail();
+}
+
+function bsRenderSelectedDetail() {
+  const el = document.getElementById('bs-selected-detail');
+  if (!el) return;
+  const chronological = [...bsEntries].sort((a, b) => new Date(a.date) - new Date(b.date));
+  const allDates = [...new Set(chronological.map(e => e.date))];
+  if (bsSelectedIdx === null || allDates.length === 0) { el.innerHTML = ''; return; }
+
+  const date = allDates[bsSelectedIdx];
+  const entry = chronological.find(e => e.date === date);
+  const fmtShort = dateStr => new Date(dateStr + 'T00:00:00').toLocaleDateString('en-AU', { month: 'short', day: 'numeric', year: 'numeric' });
+
+  const chips = BS_METRICS
+    .filter(m => bsActiveMetrics.has(m.key) && entry && entry[m.key] !== undefined)
+    .map(m => {
+      const val = Number(entry[m.key]);
+      const firstEntry = chronological.find(e => e[m.key] !== undefined && e[m.key] !== null && e[m.key] !== '');
+      const base = firstEntry ? Number(firstEntry[m.key]) : null;
+      const pct = (base && base !== 0) ? ((val - base) / Math.abs(base) * 100) : null;
+      const pctStr = pct !== null ? ` <span style="font-size:11px;opacity:0.7">(${pct >= 0 ? '+' : ''}${pct.toFixed(1)}%)</span>` : '';
+      const arrow = pct !== null ? (pct >= 0 ? '↑' : '↓') : '';
+      const color = pct !== null ? (pct >= 0 ? 'var(--green)' : 'var(--red)') : 'var(--muted)';
+      return `<span style="display:inline-flex;align-items:center;gap:6px;margin-right:18px;font-size:13px;">
+        <span style="width:8px;height:8px;border-radius:50%;background:${m.color};display:inline-block;flex-shrink:0;"></span>
+        <span style="color:var(--muted);font-size:11px;">${m.label}</span>
+        <span style="font-family:'DM Mono',monospace;font-weight:500;">${val.toFixed(m.decimals)}${m.unit}</span>
+        ${pct !== null ? `<span style="color:${color};font-weight:500;font-size:12px;">${arrow}${pctStr}</span>` : ''}
+      </span>`;
+    }).join('');
+
+  el.innerHTML = `<div style="display:flex;align-items:baseline;gap:16px;flex-wrap:wrap;">
+    <span style="font-family:'DM Mono',monospace;font-size:13px;color:var(--muted);flex-shrink:0;">${fmtShort(date)}</span>
+    <div style="display:flex;flex-wrap:wrap;gap:4px 0;">${chips || '<span style="color:var(--muted);font-size:13px;">No data for this date</span>'}</div>
+  </div>`;
 }
 
 function bsRenderList() {
