@@ -249,6 +249,47 @@
   .nw-compare-table .nw-total-row td { font-weight: 500; border-top: 2px solid var(--border); font-size: 14px; }
 
   .nw-empty-history { padding: 48px 20px; text-align: center; color: var(--muted); font-size: 14px; }
+
+  /* ══════════════════════════════════
+     CHORES
+  ══════════════════════════════════ */
+  .chore-row { display: flex; align-items: center; gap: 16px; padding: 16px 20px; border-bottom: 1px solid var(--border); }
+  .chore-row:last-child { border-bottom: none; }
+  .chore-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .chore-main { flex: 1; min-width: 0; }
+  .chore-name { font-size: 14px; font-weight: 500; }
+  .chore-note { font-size: 12px; color: var(--muted); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .chore-meta { display: flex; align-items: center; gap: 20px; flex-shrink: 0; }
+  .chore-last-col { text-align: right; min-width: 120px; }
+  .chore-last-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); }
+  .chore-last-value { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--text); margin-top: 2px; }
+  .chore-interval { font-size: 12px; color: var(--muted); white-space: nowrap; min-width: 60px; text-align: right; }
+  .btn-log-now { border: 1px solid var(--border); background: var(--bg); padding: 6px 12px; border-radius: 8px; font-size: 12px; color: var(--text); cursor: pointer; flex-shrink: 0; font-family: 'DM Sans', sans-serif; transition: all 0.15s; }
+  .btn-log-now:hover { background: var(--text); color: white; border-color: var(--text); }
+  .add-task-panel { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin-top: 8px; }
+  .add-task-grid { display: grid; grid-template-columns: 1.3fr 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+
+  /* ══════════════════════════════════
+     BODY STATS
+  ══════════════════════════════════ */
+  .bs-legend-row { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+  .bs-legend-chip { display: flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface); cursor: pointer; font-size: 12px; transition: opacity 0.15s; user-select: none; }
+  .bs-legend-chip.off { opacity: 0.35; }
+  .bs-legend-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .bs-legend-name { color: var(--text); }
+  .bs-legend-val { font-family: 'DM Mono', monospace; font-weight: 500; color: var(--text); }
+  .bs-chart-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 24px; margin-bottom: 20px; }
+  .bs-chart-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 20px; }
+  .bs-chart-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 500; }
+  .bs-chart-range { font-size: 12px; color: var(--muted); }
+  .bs-entry-row { display: flex; align-items: center; gap: 16px; padding: 12px 20px; border-bottom: 1px solid var(--border); font-size: 13px; }
+  .bs-entry-row:last-child { border-bottom: none; }
+  .bs-entry-date { font-family: 'DM Mono', monospace; width: 72px; flex-shrink: 0; color: var(--muted); font-size: 12px; }
+  .bs-entry-vals { flex: 1; display: flex; gap: 18px; flex-wrap: wrap; }
+  .bs-entry-vals .lbl { color: var(--muted); margin-right: 2px; font-size: 11px; }
+  .bs-section-tag { font-size: 11px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); margin: 16px 0 8px; }
+  .bs-form-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 4px; }
+  .bs-form-grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px; }
 </style>
 </head>
 <body>
@@ -265,9 +306,17 @@
     <span class="nav-icon">📈</span>
     <span class="nav-label">Net worth</span>
   </button>
+  <button class="nav-item" onclick="switchApp('chores')" id="nav-chores">
+    <span class="nav-icon">🧹</span>
+    <span class="nav-label">Chores</span>
+  </button>
+  <button class="nav-item" onclick="switchApp('bodystats')" id="nav-bodystats">
+    <span class="nav-icon">🏋️</span>
+    <span class="nav-label">Body stats</span>
+  </button>
   <div style="margin-left:auto;display:flex;align-items:center;gap:12px;">
     <span id="drive-status" class="drive-status"></span>
-    <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text)">v2.3</span>
+    <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text)">v2.4</span>
   </div>
 </nav>
 
@@ -601,6 +650,116 @@
 </div>
 </div>
 
+<!-- ══ CHORES PANEL ══ -->
+<div class="panel" id="panel-chores">
+<div class="app-inner">
+
+  <div style="margin-bottom:40px">
+    <h1 style="font-family:'DM Mono',monospace;font-size:28px;font-weight:500;letter-spacing:-0.5px">chores</h1>
+    <p style="color:var(--muted);font-size:13px;margin-top:4px">deep clean log</p>
+  </div>
+
+  <div class="log-section" style="margin-bottom:32px">
+    <h3>Tasks</h3>
+    <div id="chore-list"><div class="empty-state">No tasks yet. Add one below.</div></div>
+  </div>
+
+  <div class="log-form">
+    <h2>Log a clean</h2>
+    <div class="form-row" style="grid-template-columns:1fr 1fr 160px;">
+      <div class="field"><label>Date</label><input type="date" id="chore-log-date"></div>
+      <div class="field"><label>Task</label><select id="chore-log-task"></select></div>
+      <div class="field">
+        <label>&nbsp;</label>
+        <select id="chore-log-quick" style="color:var(--muted)">
+          <option value="">Quick pick…</option>
+          <option value="today">Today</option>
+          <option value="yesterday">Yesterday</option>
+        </select>
+      </div>
+    </div>
+    <div class="field" style="margin-top:12px">
+      <label>Note <span style="opacity:0.5;font-size:11px">(optional)</span></label>
+      <input type="text" id="chore-log-note" placeholder="e.g. used the new descaler, took 20 min"
+        style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:7px;font-family:'DM Sans',sans-serif;font-size:14px;background:var(--bg);color:var(--text);outline:none;"
+        onkeydown="if(event.key==='Enter') choreLogClean()">
+    </div>
+    <button class="btn-log" onclick="choreLogClean()">Log clean</button>
+  </div>
+
+  <div style="margin-top:12px">
+    <button class="btn-manage-toggle" onclick="choreToggleAdd()" id="chore-add-toggle-btn">
+      <span id="chore-add-toggle-label">+ Add task</span>
+    </button>
+    <div class="add-task-panel" id="chore-add-panel" style="display:none">
+      <div class="add-task-grid">
+        <div class="field"><label>Task name</label><input type="text" id="chore-new-name" placeholder="e.g. Wash dog bed" maxlength="60"></div>
+        <div class="field"><label>Remind every (days)</label><input type="number" id="chore-new-interval" placeholder="21" min="1" max="365"></div>
+        <div class="field">
+          <label>Color</label>
+          <select id="chore-new-color">
+            <option value="mint">mint</option>
+            <option value="lav">lavender</option>
+            <option value="peach">peach</option>
+            <option value="sky">sky</option>
+            <option value="rose">rose</option>
+            <option value="olive">olive</option>
+          </select>
+        </div>
+      </div>
+      <button class="btn-log" style="margin-top:0" onclick="choreAddTask()">Create task</button>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<!-- ══ BODY STATS PANEL ══ -->
+<div class="panel" id="panel-bodystats">
+<div class="app-inner">
+
+  <div style="margin-bottom:32px">
+    <h1 style="font-family:'DM Mono',monospace;font-size:28px;font-weight:500;letter-spacing:-0.5px">body stats</h1>
+    <p style="color:var(--muted);font-size:13px;margin-top:4px">composition trends</p>
+  </div>
+
+  <div class="bs-legend-row" id="bs-legend-row"></div>
+
+  <div class="bs-chart-card">
+    <div class="bs-chart-head">
+      <div class="bs-chart-label">Composition trends · % change from first check-in</div>
+      <div class="bs-chart-range" id="bs-chart-range"></div>
+    </div>
+    <div style="position:relative;height:300px;">
+      <canvas id="bs-chart"></canvas>
+    </div>
+  </div>
+
+  <div class="log-section" style="margin-bottom:32px">
+    <h3>Check-ins</h3>
+    <div id="bs-entry-list"><div class="empty-state">No check-ins yet. Log your first one below.</div></div>
+  </div>
+
+  <div class="log-form">
+    <h2>Log a check-in</h2>
+    <div class="bs-form-grid">
+      <div class="field"><label>Date</label><input type="date" id="bs-date"></div>
+      <div class="field"><label>Body fat %</label><input type="number" step="0.1" id="bs-fat" placeholder="18.5"></div>
+      <div class="field"><label>Weight (kg)</label><input type="number" step="0.1" id="bs-weight" placeholder="78.2"></div>
+      <div class="field"><label>Lean mass (kg)</label><input type="number" step="0.1" id="bs-lean" placeholder="63.7"></div>
+    </div>
+    <div class="bs-section-tag">Caliper pinch (mm)</div>
+    <div class="bs-form-grid-3">
+      <div class="field"><label>Chest</label><input type="number" step="0.5" id="bs-chest" placeholder="8"></div>
+      <div class="field"><label>Stomach</label><input type="number" step="0.5" id="bs-stomach" placeholder="14"></div>
+      <div class="field"><label>Leg</label><input type="number" step="0.5" id="bs-leg" placeholder="10"></div>
+    </div>
+    <button class="btn-log" onclick="bsLogCheckin()">Log check-in</button>
+  </div>
+
+</div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -612,6 +771,8 @@ function switchApp(app) {
   document.getElementById('nav-' + app).classList.add('active');
   if (app === 'bricks') renderCharts();
   if (app === 'networth') nwInit();
+  if (app === 'chores') choreInit();
+  if (app === 'bodystats') bsInit();
 }
 
 // ── Toast ──
@@ -846,7 +1007,10 @@ function renderProjectList() {
 }
 
 function exportData() {
-  const payload={exported:new Date().toISOString(),entries,projects:PROJECTS,nwCheckins,nwCalcs};
+  let choresExport=[], bsExport=[];
+  try { const r=localStorage.getItem('chores_v1'); if(r) choresExport=JSON.parse(r); } catch {}
+  try { const r=localStorage.getItem('bodystats_v1'); if(r) bsExport=JSON.parse(r); } catch {}
+  const payload={exported:new Date().toISOString(),entries,projects:PROJECTS,nwCheckins,nwCalcs,chores:choresExport,bodyStats:bsExport};
   const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a'); a.href=url; a.download=`jake-suite-backup-${today()}.json`; a.click();
@@ -903,10 +1067,12 @@ async function createDriveFile() {
   const data=await res.json(); driveFileId=data.id; setDriveStatus('synced','Saved to Drive');
 }
 function buildPayload() {
-  let nwChk=[], nwClc={};
+  let nwChk=[], nwClc={}, choresData=[], bsData=[];
   try { const r=localStorage.getItem('nw_checkins_v1'); if(r) nwChk=JSON.parse(r); } catch {}
   try { const r=localStorage.getItem('nw_calcs_v1'); if(r) nwClc=JSON.parse(r); } catch {}
-  return JSON.stringify({exported:new Date().toISOString(),entries,projects:PROJECTS,nwCheckins:nwChk,nwCalcs:nwClc},null,2);
+  try { const r=localStorage.getItem('chores_v1'); if(r) choresData=JSON.parse(r); } catch {}
+  try { const r=localStorage.getItem('bodystats_v1'); if(r) bsData=JSON.parse(r); } catch {}
+  return JSON.stringify({exported:new Date().toISOString(),entries,projects:PROJECTS,nwCheckins:nwChk,nwCalcs:nwClc,chores:choresData,bodyStats:bsData},null,2);
 }
 async function syncToDrive() {
   if(!driveFileId||isSyncing)return; isSyncing=true; setDriveStatus('syncing','Saving...');
@@ -1363,6 +1529,354 @@ function nwRenderComparison() {
       <tbody>${rows}</tbody>
     </table>
   `;
+}
+
+// ══════════════════════════════════
+// CHORES
+// ══════════════════════════════════
+const CHORES_KEY = 'chores_v1';
+const CHORE_DOT_COLORS = { mint:'#5fa07f', lav:'#8b7fc7', peach:'#d99a5b', sky:'#5f95c7', rose:'#c77f95', olive:'#8a9e5a' };
+
+let chores = [];
+let choreAddOpen = false;
+
+function choreLoadData() {
+  try { const r = localStorage.getItem(CHORES_KEY); chores = r ? JSON.parse(r) : []; } catch { chores = []; }
+}
+function choreSaveData() {
+  localStorage.setItem(CHORES_KEY, JSON.stringify(chores));
+  if (driveFileId) syncToDrive();
+}
+
+function choreInit() {
+  choreLoadData();
+  choreRender();
+  document.getElementById('chore-log-date').value = today();
+}
+
+function choreRender() {
+  // Sort: oldest lastDone first
+  const sorted = [...chores].sort((a, b) => new Date(a.lastDone) - new Date(b.lastDone));
+
+  const fmtShort = dateStr => {
+    const d = new Date(dateStr + 'T00:00:00');
+    return d.toLocaleDateString('en-AU', { month: 'short', day: 'numeric' });
+  };
+  const fmtAgo = dateStr => {
+    const diff = Math.floor((Date.now() - new Date(dateStr + 'T00:00:00')) / 86400000);
+    if (diff <= 0) return 'today';
+    if (diff === 1) return '1 day ago';
+    return diff + ' days ago';
+  };
+  const esc = s => (s||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+
+  const listEl = document.getElementById('chore-list');
+  if (!chores.length) {
+    listEl.innerHTML = '<div class="empty-state">No tasks yet. Add one below.</div>';
+  } else {
+    listEl.innerHTML = sorted.map(c => `
+      <div class="chore-row">
+        <div class="chore-dot" style="background:${CHORE_DOT_COLORS[c.color]||'#999'}"></div>
+        <div class="chore-main">
+          <div class="chore-name">${esc(c.name)}</div>
+          ${c.note ? `<div class="chore-note">${esc(c.note)}</div>` : ''}
+        </div>
+        <div class="chore-meta">
+          <div class="chore-last-col">
+            <div class="chore-last-label">Last completed</div>
+            <div class="chore-last-value">${fmtShort(c.lastDone)} · ${fmtAgo(c.lastDone)}</div>
+          </div>
+          <div class="chore-interval">every ${c.intervalDays}d</div>
+          <button class="btn-log-now" onclick="choreLogNow('${c.id}')">Log now</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  // Populate task dropdown
+  const sel = document.getElementById('chore-log-task');
+  if (sel) sel.innerHTML = chores.map(c => `<option value="${c.id}">${esc(c.name)}</option>`).join('');
+}
+
+function choreLogNow(id) {
+  const c = chores.find(x => x.id === id);
+  if (!c) return;
+  c.lastDone = today();
+  choreSaveData();
+  choreRender();
+  showToast(`${c.name} logged`);
+}
+
+function choreLogClean() {
+  const id = document.getElementById('chore-log-task').value;
+  const date = document.getElementById('chore-log-date').value;
+  const note = document.getElementById('chore-log-note').value.trim();
+  const c = chores.find(x => x.id === id);
+  if (!c || !date) { showToast('Select a task and date'); return; }
+  c.lastDone = date;
+  c.note = note;
+  choreSaveData();
+  document.getElementById('chore-log-note').value = '';
+  choreRender();
+  showToast(`${c.name} logged`);
+}
+
+function choreToggleAdd() {
+  choreAddOpen = !choreAddOpen;
+  document.getElementById('chore-add-panel').style.display = choreAddOpen ? 'block' : 'none';
+  document.getElementById('chore-add-toggle-label').textContent = choreAddOpen ? '↑ Hide' : '+ Add task';
+}
+
+function choreAddTask() {
+  const name = document.getElementById('chore-new-name').value.trim();
+  const interval = parseInt(document.getElementById('chore-new-interval').value, 10);
+  const color = document.getElementById('chore-new-color').value;
+  if (!name) { showToast('Enter a task name'); return; }
+  if (!interval || interval < 1) { showToast('Enter a valid interval'); return; }
+  if (chores.some(c => c.name.toLowerCase() === name.toLowerCase())) { showToast('Task already exists'); return; }
+  const id = 'c-' + Date.now();
+  chores.push({ id, name, intervalDays: interval, color, lastDone: today(), note: '' });
+  choreSaveData();
+  document.getElementById('chore-new-name').value = '';
+  document.getElementById('chore-new-interval').value = '';
+  choreToggleAdd();
+  choreRender();
+  showToast(`"${name}" added`);
+}
+
+// Quick-pick date helper
+document.addEventListener('DOMContentLoaded', () => {
+  const qp = document.getElementById('chore-log-quick');
+  if (qp) qp.addEventListener('change', e => {
+    const v = e.target.value;
+    if (!v) return;
+    const d = new Date();
+    if (v === 'yesterday') d.setDate(d.getDate() - 1);
+    document.getElementById('chore-log-date').value = d.toISOString().split('T')[0];
+    e.target.value = '';
+  });
+});
+
+// ══════════════════════════════════
+// BODY STATS
+// ══════════════════════════════════
+const BS_KEY = 'bodystats_v1';
+const BS_METRICS = [
+  { key: 'bodyFat',      label: 'Body fat %',    unit: '%',  decimals: 1, color: '#b23a2a' },
+  { key: 'weight',       label: 'Weight',         unit: 'kg', decimals: 1, color: '#5f95c7' },
+  { key: 'leanMass',     label: 'Lean mass',      unit: 'kg', decimals: 1, color: '#5fa07f' },
+  { key: 'chestPinch',   label: 'Chest pinch',    unit: 'mm', decimals: 1, color: '#8b7fc7' },
+  { key: 'stomachPinch', label: 'Stomach pinch',  unit: 'mm', decimals: 1, color: '#d99a5b' },
+  { key: 'legPinch',     label: 'Leg pinch',      unit: 'mm', decimals: 1, color: '#c77f95' },
+];
+
+let bsEntries = [];
+let bsActiveMetrics = new Set(BS_METRICS.map(m => m.key));
+let bsChart = null;
+
+function bsLoadData() {
+  try { const r = localStorage.getItem(BS_KEY); bsEntries = r ? JSON.parse(r) : []; } catch { bsEntries = []; }
+}
+function bsSaveData() {
+  localStorage.setItem(BS_KEY, JSON.stringify(bsEntries));
+  if (driveFileId) syncToDrive();
+}
+
+function bsInit() {
+  bsLoadData();
+  document.getElementById('bs-date').value = today();
+  bsRender();
+}
+
+function bsRender() {
+  bsRenderLegend();
+  bsRenderChart();
+  bsRenderList();
+}
+
+function bsRenderLegend() {
+  const esc = s => (s||'').toString().replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  document.getElementById('bs-legend-row').innerHTML = BS_METRICS.map(m => {
+    const latest = [...bsEntries]
+      .filter(e => e[m.key] !== undefined && e[m.key] !== null && e[m.key] !== '')
+      .sort((a, b) => new Date(b.date) - new Date(a.date))[0];
+    const valStr = latest ? Number(latest[m.key]).toFixed(m.decimals) + m.unit : '—';
+    const off = bsActiveMetrics.has(m.key) ? '' : 'off';
+    return `<div class="bs-legend-chip ${off}" data-metric="${m.key}" onclick="bsToggleMetric('${m.key}')">
+      <div class="bs-legend-dot" style="background:${m.color}"></div>
+      <span class="bs-legend-name">${esc(m.label)}</span>
+      <span class="bs-legend-val">${esc(valStr)}</span>
+    </div>`;
+  }).join('');
+}
+
+function bsToggleMetric(key) {
+  if (bsActiveMetrics.has(key)) bsActiveMetrics.delete(key); else bsActiveMetrics.add(key);
+  bsRender();
+}
+
+function bsRenderChart() {
+  const ctx = document.getElementById('bs-chart').getContext('2d');
+  if (bsChart) { bsChart.destroy(); bsChart = null; }
+
+  const chronological = [...bsEntries].sort((a, b) => new Date(a.date) - new Date(b.date));
+  if (chronological.length === 0) {
+    document.getElementById('bs-chart-range').textContent = '';
+    return;
+  }
+
+  const allDates = [...new Set(chronological.map(e => e.date))];
+
+  const fmtShort = dateStr => {
+    const d = new Date(dateStr + 'T00:00:00');
+    return d.toLocaleDateString('en-AU', { month: 'short', day: 'numeric' });
+  };
+  document.getElementById('bs-chart-range').textContent =
+    allDates.length ? fmtShort(allDates[0]) + ' – ' + fmtShort(allDates[allDates.length - 1]) : '';
+
+  // Per-metric raw values lookup for tooltips
+  const rawLookup = {};
+  BS_METRICS.forEach(m => { rawLookup[m.key] = {}; });
+  chronological.forEach(e => {
+    BS_METRICS.forEach(m => {
+      if (e[m.key] !== undefined && e[m.key] !== null && e[m.key] !== '') rawLookup[m.key][e.date] = Number(e[m.key]);
+    });
+  });
+
+  // Zero line dataset
+  const zeroDataset = {
+    label: '_zero',
+    data: allDates.map(() => 0),
+    borderColor: 'rgba(0,0,0,0.15)',
+    borderWidth: 1,
+    borderDash: [4, 4],
+    pointRadius: 0,
+    fill: false,
+    tension: 0,
+    order: 99,
+  };
+
+  const metricDatasets = BS_METRICS
+    .filter(m => bsActiveMetrics.has(m.key))
+    .map(m => {
+      // Find first recorded value for this metric (across all dates)
+      const firstEntry = chronological.find(e => e[m.key] !== undefined && e[m.key] !== null && e[m.key] !== '');
+      const baseVal = firstEntry ? Number(firstEntry[m.key]) : null;
+
+      const data = allDates.map(date => {
+        const raw = rawLookup[m.key][date];
+        if (raw === undefined || baseVal === null || baseVal === 0) return null;
+        return parseFloat(((raw - baseVal) / Math.abs(baseVal) * 100).toFixed(2));
+      });
+
+      return {
+        label: m.label,
+        data,
+        borderColor: m.color,
+        backgroundColor: m.color,
+        pointBackgroundColor: m.color,
+        pointRadius: 4,
+        pointHoverRadius: 6,
+        borderWidth: 2,
+        tension: 0.3,
+        fill: false,
+        spanGaps: false,
+        _unit: m.unit,
+        _decimals: m.decimals,
+        _key: m.key,
+      };
+    });
+
+  bsChart = new Chart(ctx, {
+    type: 'line',
+    data: { labels: allDates, datasets: [zeroDataset, ...metricDatasets] },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          filter: item => item.dataset.label !== '_zero',
+          callbacks: {
+            title: items => fmtShort(items[0].label),
+            label: item => {
+              const raw = rawLookup[item.dataset._key]?.[item.label];
+              const pctStr = item.parsed.y !== null ? (item.parsed.y >= 0 ? '+' : '') + item.parsed.y.toFixed(1) + '%' : '';
+              const rawStr = raw !== undefined ? raw.toFixed(item.dataset._decimals) + item.dataset._unit : '';
+              return ` ${item.dataset.label}: ${rawStr} (${pctStr})`;
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid: { display: false },
+          ticks: { font: { family: 'DM Mono', size: 10 }, color: '#9A9088' }
+        },
+        y: {
+          grid: { color: '#E8E4DE' },
+          ticks: {
+            font: { family: 'DM Mono', size: 10 },
+            color: '#9A9088',
+            callback: v => (v >= 0 ? '+' : '') + v + '%'
+          }
+        }
+      }
+    }
+  });
+}
+
+function bsRenderList() {
+  const sorted = [...bsEntries].sort((a, b) => new Date(b.date) - new Date(a.date));
+  const fmtShort = dateStr => {
+    const d = new Date(dateStr + 'T00:00:00');
+    return d.toLocaleDateString('en-AU', { month: 'short', day: 'numeric' });
+  };
+  const el = document.getElementById('bs-entry-list');
+  if (!sorted.length) {
+    el.innerHTML = '<div class="empty-state">No check-ins yet.</div>';
+    return;
+  }
+  el.innerHTML = sorted.map(e => {
+    const vals = [
+      e.bodyFat   !== undefined ? `<span><span class="lbl">fat</span><b>${Number(e.bodyFat).toFixed(1)}%</b></span>` : '',
+      e.weight    !== undefined ? `<span><span class="lbl">wt</span><b>${Number(e.weight).toFixed(1)}kg</b></span>` : '',
+      e.leanMass  !== undefined ? `<span><span class="lbl">lean</span><b>${Number(e.leanMass).toFixed(1)}kg</b></span>` : '',
+      e.chestPinch    !== undefined ? `<span><span class="lbl">chest</span><b>${Number(e.chestPinch).toFixed(1)}mm</b></span>` : '',
+      e.stomachPinch  !== undefined ? `<span><span class="lbl">stomach</span><b>${Number(e.stomachPinch).toFixed(1)}mm</b></span>` : '',
+      e.legPinch      !== undefined ? `<span><span class="lbl">leg</span><b>${Number(e.legPinch).toFixed(1)}mm</b></span>` : '',
+    ].filter(Boolean).join('');
+    return `<div class="bs-entry-row"><div class="bs-entry-date">${fmtShort(e.date)}</div><div class="bs-entry-vals">${vals}</div></div>`;
+  }).join('');
+}
+
+function bsLogCheckin() {
+  const date = document.getElementById('bs-date').value;
+  if (!date) { showToast('Select a date'); return; }
+  const parse = id => { const v = parseFloat(document.getElementById(id).value); return isNaN(v) ? undefined : v; };
+  const entry = {
+    id: 'bs-' + Date.now(),
+    date,
+    bodyFat:      parse('bs-fat'),
+    weight:       parse('bs-weight'),
+    leanMass:     parse('bs-lean'),
+    chestPinch:   parse('bs-chest'),
+    stomachPinch: parse('bs-stomach'),
+    legPinch:     parse('bs-leg'),
+  };
+  // Remove undefined keys
+  Object.keys(entry).forEach(k => entry[k] === undefined && delete entry[k]);
+  if (Object.keys(entry).length <= 2) { showToast('Enter at least one measurement'); return; }
+
+  // Replace same-date entry if exists, otherwise append
+  const idx = bsEntries.findIndex(e => e.date === date);
+  if (idx !== -1) bsEntries[idx] = entry; else bsEntries.push(entry);
+
+  bsSaveData();
+  ['bs-fat','bs-weight','bs-lean','bs-chest','bs-stomach','bs-leg'].forEach(id => { document.getElementById(id).value = ''; });
+  bsRender();
+  showToast('Check-in saved');
 }
 
 // ── Boot ──
