@@ -316,7 +316,7 @@
   </button>
   <div style="margin-left:auto;display:flex;align-items:center;gap:12px;">
     <span id="drive-status" class="drive-status"></span>
-    <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text)">v2.5</span>
+    <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text)">v2.6</span>
   </div>
 </nav>
 
@@ -741,8 +741,11 @@
     <div id="bs-entry-list"><div class="empty-state">No check-ins yet. Log your first one below.</div></div>
   </div>
 
-  <div class="log-form">
-    <h2>Log a check-in</h2>
+  <div class="log-form" id="bs-log-form">
+    <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:16px;">
+      <h2 id="bs-form-title" style="margin:0">Log a check-in</h2>
+      <button id="bs-cancel-edit" onclick="bsCancelEdit()" style="display:none;font-size:12px;color:var(--muted);background:none;border:none;cursor:pointer;padding:0;font-family:'DM Sans',sans-serif;">✕ Cancel edit</button>
+    </div>
     <div class="bs-form-grid">
       <div class="field"><label>Date</label><input type="date" id="bs-date"></div>
       <div class="field"><label>Body fat %</label><input type="number" step="0.1" id="bs-fat" placeholder="18.5"></div>
@@ -755,7 +758,7 @@
       <div class="field"><label>Stomach</label><input type="number" step="0.5" id="bs-stomach" placeholder="14"></div>
       <div class="field"><label>Leg</label><input type="number" step="0.5" id="bs-leg" placeholder="10"></div>
     </div>
-    <button class="btn-log" onclick="bsLogCheckin()">Log check-in</button>
+    <button class="btn-log" id="bs-submit-btn" onclick="bsLogCheckin()">Log check-in</button>
   </div>
 
 </div>
@@ -1877,16 +1880,45 @@ function bsRenderList() {
       e.stomachPinch  !== undefined ? `<span><span class="lbl">stomach</span><b>${Number(e.stomachPinch).toFixed(1)}mm</b></span>` : '',
       e.legPinch      !== undefined ? `<span><span class="lbl">leg</span><b>${Number(e.legPinch).toFixed(1)}mm</b></span>` : '',
     ].filter(Boolean).join('');
-    return `<div class="bs-entry-row"><div class="bs-entry-date">${fmtShort(e.date)}</div><div class="bs-entry-vals">${vals}</div></div>`;
+    return `<div class="bs-entry-row"><div class="bs-entry-date">${fmtShort(e.date)}</div><div class="bs-entry-vals">${vals}</div><button class="btn-log-now" onclick="bsStartEdit('${e.id}')">Edit</button></div>`;
   }).join('');
+}
+
+let bsEditingId = null;
+
+function bsStartEdit(id) {
+  const entry = bsEntries.find(e => e.id === id);
+  if (!entry) return;
+  bsEditingId = id;
+  document.getElementById('bs-date').value = entry.date;
+  document.getElementById('bs-fat').value = entry.bodyFat !== undefined ? entry.bodyFat : '';
+  document.getElementById('bs-weight').value = entry.weight !== undefined ? entry.weight : '';
+  document.getElementById('bs-lean').value = entry.leanMass !== undefined ? entry.leanMass : '';
+  document.getElementById('bs-chest').value = entry.chestPinch !== undefined ? entry.chestPinch : '';
+  document.getElementById('bs-stomach').value = entry.stomachPinch !== undefined ? entry.stomachPinch : '';
+  document.getElementById('bs-leg').value = entry.legPinch !== undefined ? entry.legPinch : '';
+  document.getElementById('bs-form-title').textContent = 'Edit check-in';
+  document.getElementById('bs-submit-btn').textContent = 'Save changes';
+  document.getElementById('bs-cancel-edit').style.display = 'inline';
+  document.getElementById('bs-log-form').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function bsCancelEdit() {
+  bsEditingId = null;
+  document.getElementById('bs-date').value = today();
+  ['bs-fat','bs-weight','bs-lean','bs-chest','bs-stomach','bs-leg'].forEach(id => { document.getElementById(id).value = ''; });
+  document.getElementById('bs-form-title').textContent = 'Log a check-in';
+  document.getElementById('bs-submit-btn').textContent = 'Log check-in';
+  document.getElementById('bs-cancel-edit').style.display = 'none';
 }
 
 function bsLogCheckin() {
   const date = document.getElementById('bs-date').value;
   if (!date) { showToast('Select a date'); return; }
   const parse = id => { const v = parseFloat(document.getElementById(id).value); return isNaN(v) ? undefined : v; };
+  const existingId = bsEditingId || ('bs-' + Date.now());
   const entry = {
-    id: 'bs-' + Date.now(),
+    id: existingId,
     date,
     bodyFat:      parse('bs-fat'),
     weight:       parse('bs-weight'),
@@ -1899,14 +1931,23 @@ function bsLogCheckin() {
   Object.keys(entry).forEach(k => entry[k] === undefined && delete entry[k]);
   if (Object.keys(entry).length <= 2) { showToast('Enter at least one measurement'); return; }
 
-  // Replace same-date entry if exists, otherwise append
-  const idx = bsEntries.findIndex(e => e.date === date);
-  if (idx !== -1) bsEntries[idx] = entry; else bsEntries.push(entry);
+  // Replace by id if editing, otherwise replace by date or append
+  const idxById = bsEditingId ? bsEntries.findIndex(e => e.id === bsEditingId) : -1;
+  const idxByDate = bsEntries.findIndex(e => e.date === date);
+  if (idxById !== -1) bsEntries[idxById] = entry;
+  else if (idxByDate !== -1) bsEntries[idxByDate] = entry;
+  else bsEntries.push(entry);
+
+  const wasEditing = !!bsEditingId;
+  bsEditingId = null;
+  document.getElementById('bs-form-title').textContent = 'Log a check-in';
+  document.getElementById('bs-submit-btn').textContent = 'Log check-in';
+  document.getElementById('bs-cancel-edit').style.display = 'none';
 
   bsSaveData();
   ['bs-fat','bs-weight','bs-lean','bs-chest','bs-stomach','bs-leg'].forEach(id => { document.getElementById(id).value = ''; });
   bsRender();
-  showToast('Check-in saved');
+  showToast(wasEditing ? 'Check-in updated' : 'Check-in saved');
 }
 
 // ── Boot ──
