@@ -296,6 +296,99 @@
   .bs-section-tag { font-size: 11px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); margin: 16px 0 8px; }
   .bs-form-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 4px; }
   .bs-form-grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px; }
+
+  /* ══════════════════════════════════
+     MACROS
+  ══════════════════════════════════ */
+  .mac-layout { display: flex; gap: 20px; align-items: flex-start; }
+  .mac-main { flex: 1; min-width: 0; }
+  .mac-sidebar { width: 180px; flex-shrink: 0; position: sticky; top: calc(var(--nav-h) + 24px); background: var(--surface); border: 1px solid var(--border); border-top: 3px solid var(--text); border-radius: 0 0 10px 10px; padding: 16px 14px; }
+  @media (max-width: 760px) { .mac-layout { flex-direction: column; } .mac-sidebar { position: static; width: 100%; } }
+  .mac-eyebrow { font-family: 'DM Mono', monospace; font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); }
+  .mac-header-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 28px; flex-wrap: wrap; }
+  .mac-date-ctrl { display: flex; align-items: center; gap: 6px; margin-top: 6px; }
+  .mac-date-ctrl button { background: none; border: 1px solid var(--border); border-radius: 6px; width: 30px; height: 30px; font-size: 15px; cursor: pointer; color: var(--text); display: flex; align-items: center; justify-content: center; }
+  .mac-date-ctrl button:hover { background: var(--bg); }
+  .mac-date-ctrl input[type="date"] { padding: 5px 8px; border: 1px solid var(--border); border-radius: 6px; font-family: 'DM Mono', monospace; font-size: 12px; background: var(--bg); color: var(--text); outline: none; }
+
+  .mac-facts { background: var(--surface); border-top: 3px solid var(--text); border-bottom: 3px solid var(--text); border-left: 1px solid var(--border); border-right: 1px solid var(--border); padding: 16px 20px 20px; margin-bottom: 28px; }
+  .mac-facts-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .mac-edit-targets { background: none; border: none; font-size: 11px; color: var(--muted); cursor: pointer; text-decoration: underline; font-family: 'DM Sans', sans-serif; padding: 0; }
+  .mac-edit-targets:hover { color: var(--text); }
+  .mac-facts-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 0; }
+  .mac-facts-col { padding: 0 18px; }
+  .mac-facts-col:first-child { padding-left: 0; border-right: 1px solid var(--border); }
+  .mac-facts-col:last-child { padding-right: 0; }
+  @media (max-width: 560px) { .mac-facts-cols { grid-template-columns: 1fr; } .mac-facts-col { padding: 0; border-right: none !important; } .mac-facts-col:last-child { margin-top: 18px; } }
+  .mac-fact-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); margin-bottom: 6px; }
+  .mac-fact-numrow { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+  .mac-fact-num { font-family: 'DM Mono', monospace; font-size: 30px; font-weight: 500; line-height: 1; }
+  .mac-fact-of { font-size: 12px; color: var(--muted); }
+  .mac-pill { display: inline-block; padding: 2px 9px; border-radius: 20px; font-size: 11px; font-weight: 500; margin-bottom: 14px; }
+  .mac-pill.ok { background: var(--green-bg); color: var(--green); }
+  .mac-pill.under { background: var(--blue-bg); color: #5f95c7; }
+  .mac-pill.over { background: var(--red-bg); color: var(--red); }
+  .mac-thermo { position: relative; height: 34px; margin-top: 4px; }
+  .mac-thermo-track { position: absolute; top: 8px; left: 0; right: 0; height: 4px; background: var(--border); border-radius: 2px; }
+  .mac-thermo-band { position: absolute; top: 8px; height: 4px; background: var(--green); opacity: 0.55; }
+  .mac-thermo-tick { position: absolute; top: 4px; width: 1px; height: 12px; background: var(--muted); }
+  .mac-thermo-ticklabel { position: absolute; top: 20px; font-family: 'DM Mono', monospace; font-size: 9px; color: var(--muted); transform: translateX(-50%); white-space: nowrap; }
+  .mac-thermo-marker { position: absolute; top: 4px; width: 12px; height: 12px; border-radius: 50%; transform: translateX(-50%); border: 2px solid var(--surface); box-shadow: 0 0 0 1px rgba(0,0,0,0.08); }
+  .mac-pbar { position: relative; height: 14px; background: var(--border); border-radius: 7px; overflow: hidden; margin-top: 8px; }
+  .mac-pbar-fill { position: absolute; top: 0; bottom: 0; left: 0; background: #4F7B76; }
+  .mac-pbar-over { position: absolute; top: 0; bottom: 0; background: var(--green); }
+  .mac-pbar-target { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--text); }
+
+  .mac-section { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; margin-bottom: 24px; }
+  .mac-section-head { padding: 16px 20px 10px; }
+  .mac-section-head h3 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+  .mac-section-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .mac-table-head, .mac-row { display: grid; align-items: center; gap: 10px; padding: 0 20px; }
+  .mac-cols-quick { grid-template-columns: 22px 1fr 80px 80px 22px; }
+  .mac-cols-var { grid-template-columns: 22px 1fr 64px 80px 80px 22px; }
+  .mac-table-head { font-family: 'DM Mono', monospace; font-size: 10px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); background: var(--bg); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); padding-top: 7px; padding-bottom: 7px; }
+  .mac-row { border-bottom: 1px solid var(--border); padding-top: 9px; padding-bottom: 9px; font-size: 13px; }
+  .mac-row:last-child { border-bottom: none; }
+  .mac-row:hover { background: var(--bg); }
+  .mac-row input[type="checkbox"] { width: 15px; height: 15px; accent-color: var(--green); cursor: pointer; }
+  .mac-row .mac-num { font-family: 'DM Mono', monospace; font-size: 12px; text-align: right; color: var(--muted); }
+  .mac-row.logged .mac-name { color: var(--green); font-weight: 500; }
+  .mac-row.logged .mac-num { color: var(--text); }
+  .mac-num-hd { text-align: right; }
+  .mac-row-edit { background: none; border: none; cursor: pointer; color: var(--muted); font-size: 13px; padding: 0; line-height: 1; visibility: hidden; }
+  .mac-row:hover .mac-row-edit { visibility: visible; }
+  .mac-row-edit:hover { color: var(--accent); }
+  .mac-grams-input { width: 100%; padding: 4px 6px; border: 1px solid var(--border); border-radius: 6px; font-family: 'DM Mono', monospace; font-size: 12px; text-align: right; background: var(--bg); color: var(--text); outline: none; }
+  .mac-grams-input:focus { border-color: var(--accent); }
+  .mac-grams-input:disabled { background: var(--surface); color: var(--green); border-color: transparent; }
+  .mac-add-item-wrap { padding: 12px 20px 16px; border-top: 1px solid var(--border); }
+
+  .mac-overlay { position: fixed; inset: 0; background: rgba(26,24,22,0.5); display: flex; align-items: center; justify-content: center; z-index: 300; }
+  .mac-modal { background: var(--surface); border-radius: 12px; padding: 28px; max-width: 400px; width: 92%; }
+  .mac-modal h2 { font-size: 16px; margin-bottom: 18px; }
+  .mac-kind-toggle { display: flex; gap: 8px; margin-bottom: 16px; }
+  .mac-kind-btn { flex: 1; padding: 9px; border: 1px solid var(--border); border-radius: 7px; background: none; font-size: 13px; font-family: 'DM Sans', sans-serif; cursor: pointer; color: var(--muted); }
+  .mac-kind-btn.active { background: var(--text); color: white; border-color: var(--text); }
+  .mac-modal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .mac-modal-hint { font-size: 11px; color: var(--muted); margin-top: 8px; line-height: 1.5; }
+  .mac-modal-actions { display: flex; justify-content: flex-end; align-items: center; gap: 10px; margin-top: 22px; }
+  .mac-btn-delete-item { background: none; border: none; color: var(--red); font-size: 12px; cursor: pointer; font-family: 'DM Sans', sans-serif; margin-right: auto; padding: 0; }
+
+  .mac-side-rule { font-size: 11px; color: var(--muted); line-height: 1.5; margin: 8px 0 14px; }
+  .mac-side-month { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .mac-side-month span { font-family: 'DM Mono', monospace; font-size: 11px; }
+  .mac-side-month button { background: none; border: 1px solid var(--border); border-radius: 5px; width: 22px; height: 22px; font-size: 12px; cursor: pointer; color: var(--text); display: flex; align-items: center; justify-content: center; }
+  .mac-side-list { max-height: 340px; overflow-y: auto; }
+  .mac-side-day { display: flex; align-items: center; gap: 8px; padding: 4px 4px; border-radius: 5px; cursor: pointer; font-size: 11px; }
+  .mac-side-day:hover { background: var(--bg); }
+  .mac-side-day .dnum { font-family: 'DM Mono', monospace; width: 18px; text-align: right; }
+  .mac-side-day .dwk { color: var(--muted); flex: 1; }
+  .mac-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+  .mac-dot.ok { background: var(--green); }
+  .mac-dot.fail { background: var(--red); }
+  .mac-dot.none { background: none; border: 1.5px solid var(--muted); }
+  .mac-side-legend { border-top: 1px solid var(--border); margin-top: 12px; padding-top: 10px; display: flex; flex-direction: column; gap: 5px; }
+  .mac-side-legend div { display: flex; align-items: center; gap: 7px; font-size: 10px; color: var(--muted); }
 </style>
 </head>
 <body>
@@ -320,9 +413,13 @@
     <span class="nav-icon">🏋️</span>
     <span class="nav-label">Body stats</span>
   </button>
+  <button class="nav-item" onclick="switchApp('macros')" id="nav-macros">
+    <span class="nav-icon">🍎</span>
+    <span class="nav-label">Macros</span>
+  </button>
   <div style="margin-left:auto;display:flex;align-items:center;gap:12px;">
     <span id="drive-status" class="drive-status"></span>
-    <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text)">v3.2</span>
+    <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text)">v3.3</span>
   </div>
 </nav>
 
@@ -760,6 +857,139 @@
 </div>
 </div>
 
+<!-- ══ MACROS PANEL ══ -->
+<div class="panel" id="panel-macros">
+<div class="app-inner">
+
+  <div class="mac-layout">
+    <div class="mac-main">
+
+      <div class="mac-header-row">
+        <div>
+          <h1 style="font-family:'DM Mono',monospace;font-size:28px;font-weight:500;letter-spacing:-0.5px">macros</h1>
+          <p style="color:var(--muted);font-size:13px;margin-top:4px">daily macro log</p>
+        </div>
+        <div class="mac-date-ctrl">
+          <button onclick="macroStepDay(-1)">‹</button>
+          <input type="date" id="mac-date" onchange="macroDateChanged()">
+          <button onclick="macroStepDay(1)">›</button>
+        </div>
+      </div>
+
+      <div class="mac-facts">
+        <div class="mac-facts-head">
+          <span class="mac-eyebrow" id="mac-facts-title">TODAY'S FACTS</span>
+          <button class="mac-edit-targets" onclick="macroOpenTargets()">Edit targets</button>
+        </div>
+        <div class="mac-facts-cols">
+          <div class="mac-facts-col">
+            <div class="mac-fact-label">Calories</div>
+            <div class="mac-fact-numrow">
+              <span class="mac-fact-num" id="mac-cal-num">0</span>
+              <span class="mac-fact-of" id="mac-cal-of">of 2,700–2,900</span>
+            </div>
+            <span class="mac-pill under" id="mac-cal-pill">—</span>
+            <div class="mac-thermo" id="mac-thermo"></div>
+          </div>
+          <div class="mac-facts-col">
+            <div class="mac-fact-label">Protein</div>
+            <div class="mac-fact-numrow">
+              <span class="mac-fact-num" id="mac-pro-num">0g</span>
+              <span class="mac-fact-of" id="mac-pro-of">of 190g</span>
+            </div>
+            <span class="mac-pill under" id="mac-pro-pill">—</span>
+            <div class="mac-pbar" id="mac-pbar"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="mac-section">
+        <div class="mac-section-head">
+          <h3>Quick add</h3>
+          <div class="mac-section-sub">tick to log</div>
+        </div>
+        <div class="mac-table-head mac-cols-quick"><span></span><span>Item</span><span class="mac-num-hd">Protein</span><span class="mac-num-hd">Calories</span><span></span></div>
+        <div id="mac-quick-body"></div>
+      </div>
+
+      <div class="mac-section">
+        <div class="mac-section-head">
+          <h3>Log an amount</h3>
+          <div class="mac-section-sub">enter grams, then tick</div>
+        </div>
+        <div class="mac-table-head mac-cols-var"><span></span><span>Item</span><span class="mac-num-hd">Grams</span><span class="mac-num-hd">Protein</span><span class="mac-num-hd">Calories</span><span></span></div>
+        <div id="mac-var-body"></div>
+        <div class="mac-add-item-wrap">
+          <button class="btn-manage-toggle" onclick="macroOpenAddItem()">+ Add usual item</button>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="mac-sidebar">
+      <span class="mac-eyebrow">COMPLIANCE</span>
+      <div class="mac-side-rule">Calories in range, protein at target or higher — 5% either way still counts</div>
+      <div class="mac-side-month">
+        <button onclick="macroSidebarStep(-1)">‹</button>
+        <span id="mac-side-month-label">—</span>
+        <button onclick="macroSidebarStep(1)">›</button>
+      </div>
+      <div class="mac-side-list" id="mac-side-list"></div>
+      <div class="mac-side-legend">
+        <div><span class="mac-dot ok"></span> compliant</div>
+        <div><span class="mac-dot fail"></span> not compliant</div>
+        <div><span class="mac-dot none"></span> no log</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<!-- Macros: add/edit item modal -->
+<div class="mac-overlay" id="mac-item-overlay" style="display:none" onclick="if(event.target===this) macroCloseItemModal()">
+  <div class="mac-modal">
+    <h2 id="mac-item-modal-title">Add item</h2>
+    <div class="mac-kind-toggle">
+      <button class="mac-kind-btn active" id="mac-kind-quick" onclick="macroSetKind('quick')">One click</button>
+      <button class="mac-kind-btn" id="mac-kind-variable" onclick="macroSetKind('variable')">By amount</button>
+    </div>
+    <div class="field" style="margin-bottom:12px"><label>Name</label><input type="text" id="mac-item-name" maxlength="60" placeholder="e.g. Protein shake"></div>
+    <div class="mac-modal-grid" id="mac-fields-quick">
+      <div class="field"><label>Calories per serving</label><input type="number" id="mac-item-cals-serv" min="0" step="1" placeholder="220"></div>
+      <div class="field"><label>Protein per serving (g)</label><input type="number" id="mac-item-pro-serv" min="0" step="0.5" placeholder="38"></div>
+    </div>
+    <div id="mac-fields-variable" style="display:none">
+      <div class="mac-modal-grid">
+        <div class="field"><label>Calories per 100g</label><input type="number" id="mac-item-cals-100" min="0" step="1" placeholder="165"></div>
+        <div class="field"><label>Protein per 100g (g)</label><input type="number" id="mac-item-pro-100" min="0" step="0.5" placeholder="31"></div>
+      </div>
+      <div class="mac-modal-hint">You'll enter the exact grams each time you log it.</div>
+    </div>
+    <div class="mac-modal-actions">
+      <button class="mac-btn-delete-item" id="mac-item-delete" style="display:none" onclick="macroDeleteItem()">Delete item</button>
+      <button class="btn-ghost" onclick="macroCloseItemModal()">Cancel</button>
+      <button class="btn-checkin" id="mac-item-save-btn" onclick="macroSaveItem()">Add item</button>
+    </div>
+  </div>
+</div>
+
+<!-- Macros: edit targets modal -->
+<div class="mac-overlay" id="mac-targets-overlay" style="display:none" onclick="if(event.target===this) macroCloseTargets()">
+  <div class="mac-modal">
+    <h2>Edit targets</h2>
+    <div class="mac-modal-grid" style="grid-template-columns:1fr 1fr 1fr">
+      <div class="field"><label>Calories low</label><input type="number" id="mac-t-callow" min="0" step="10"></div>
+      <div class="field"><label>Calories high</label><input type="number" id="mac-t-calhigh" min="0" step="10"></div>
+      <div class="field"><label>Protein (g)</label><input type="number" id="mac-t-protein" min="0" step="1"></div>
+    </div>
+    <div class="mac-modal-actions">
+      <button class="btn-ghost" onclick="macroCloseTargets()">Cancel</button>
+      <button class="btn-checkin" onclick="macroSaveTargetsModal()">Save</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -773,6 +1003,7 @@ function switchApp(app) {
   if (app === 'networth') nwInit();
   if (app === 'chores') choreInit();
   if (app === 'bodystats') bsInit();
+  if (app === 'macros') macroInit();
 }
 
 // ── Toast ──
@@ -1007,10 +1238,13 @@ function renderProjectList() {
 }
 
 function exportData() {
-  let choresExport=[], bsExport=[];
+  let choresExport=[], bsExport=[], macTgtExport={}, macCatExport=[], macLogExport={};
   try { const r=localStorage.getItem('chores_v1'); if(r) choresExport=JSON.parse(r); } catch {}
   try { const r=localStorage.getItem('bodystats_v1'); if(r) bsExport=JSON.parse(r); } catch {}
-  const payload={exported:new Date().toISOString(),entries,projects:PROJECTS,nwCheckins,nwCalcs,chores:choresExport,bodyStats:bsExport};
+  try { const r=localStorage.getItem('macros_targets_v1'); if(r) macTgtExport=JSON.parse(r); } catch {}
+  try { const r=localStorage.getItem('macros_catalog_v1'); if(r) macCatExport=JSON.parse(r); } catch {}
+  try { const r=localStorage.getItem('macros_log_v1'); if(r) macLogExport=JSON.parse(r); } catch {}
+  const payload={exported:new Date().toISOString(),entries,projects:PROJECTS,nwCheckins,nwCalcs,chores:choresExport,bodyStats:bsExport,macroTargets:macTgtExport,macroCatalog:macCatExport,macroLog:macLogExport};
   const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a'); a.href=url; a.download=`jake-suite-backup-${today()}.json`; a.click();
@@ -1067,12 +1301,15 @@ async function createDriveFile() {
   const data=await res.json(); driveFileId=data.id; setDriveStatus('synced','Saved to Drive');
 }
 function buildPayload() {
-  let nwChk=[], nwClc={}, choresData=[], bsData=[];
+  let nwChk=[], nwClc={}, choresData=[], bsData=[], macTgt={}, macCat=[], macLg={};
   try { const r=localStorage.getItem('nw_checkins_v1'); if(r) nwChk=JSON.parse(r); } catch {}
   try { const r=localStorage.getItem('nw_calcs_v1'); if(r) nwClc=JSON.parse(r); } catch {}
   try { const r=localStorage.getItem('chores_v1'); if(r) choresData=JSON.parse(r); } catch {}
   try { const r=localStorage.getItem('bodystats_v1'); if(r) bsData=JSON.parse(r); } catch {}
-  return JSON.stringify({exported:new Date().toISOString(),entries,projects:PROJECTS,nwCheckins:nwChk,nwCalcs:nwClc,chores:choresData,bodyStats:bsData},null,2);
+  try { const r=localStorage.getItem('macros_targets_v1'); if(r) macTgt=JSON.parse(r); } catch {}
+  try { const r=localStorage.getItem('macros_catalog_v1'); if(r) macCat=JSON.parse(r); } catch {}
+  try { const r=localStorage.getItem('macros_log_v1'); if(r) macLg=JSON.parse(r); } catch {}
+  return JSON.stringify({exported:new Date().toISOString(),entries,projects:PROJECTS,nwCheckins:nwChk,nwCalcs:nwClc,chores:choresData,bodyStats:bsData,macroTargets:macTgt,macroCatalog:macCat,macroLog:macLg},null,2);
 }
 async function syncToDrive() {
   if(!driveFileId||isSyncing)return; isSyncing=true; setDriveStatus('syncing','Saving...');
@@ -2000,6 +2237,407 @@ function bsLogCheckin() {
   ['bs-fat','bs-weight','bs-lean','bs-chest','bs-stomach','bs-leg'].forEach(id => { document.getElementById(id).value = ''; });
   bsRender();
   showToast(wasEditing ? 'Check-in updated' : 'Check-in saved');
+}
+
+// ══════════════════════════════════
+// MACROS
+// ══════════════════════════════════
+const MACRO_TARGETS_KEY = 'macros_targets_v1';
+const MACRO_CATALOG_KEY = 'macros_catalog_v1';
+const MACRO_LOG_KEY = 'macros_log_v1';
+const MACRO_TOL = 0.05;
+
+let macroTargets = { calLow: 2700, calHigh: 2900, protein: 190 };
+let macroCatalog = [];
+let macroLog = {};
+let macroCurrentDate = today();
+let macroSidebarYear = null, macroSidebarMonth = null; // month is 0-based
+let macroEditingItemId = null;
+let macroPendingKind = 'quick';
+
+function macroEsc(s) { return (s||'').toString().replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+
+function macroCalCompliant(cals, t) { return cals >= t.calLow*(1-MACRO_TOL) && cals <= t.calHigh*(1+MACRO_TOL); }
+function macroProteinCompliant(p, t) { return p >= t.protein*(1-MACRO_TOL); }
+
+function macroLoadData() {
+  try { const r = localStorage.getItem(MACRO_TARGETS_KEY); if (r) macroTargets = { calLow: 2700, calHigh: 2900, protein: 190, ...JSON.parse(r) }; } catch {}
+  try { const r = localStorage.getItem(MACRO_CATALOG_KEY); macroCatalog = r ? JSON.parse(r) : []; } catch { macroCatalog = []; }
+  try { const r = localStorage.getItem(MACRO_LOG_KEY); macroLog = r ? JSON.parse(r) : {}; } catch { macroLog = {}; }
+}
+function macroSaveTargets() {
+  localStorage.setItem(MACRO_TARGETS_KEY, JSON.stringify(macroTargets));
+  if (driveFileId) syncToDrive();
+}
+function macroSaveCatalog() {
+  localStorage.setItem(MACRO_CATALOG_KEY, JSON.stringify(macroCatalog));
+  if (driveFileId) syncToDrive();
+}
+function macroSaveLog() {
+  localStorage.setItem(MACRO_LOG_KEY, JSON.stringify(macroLog));
+  if (driveFileId) syncToDrive();
+}
+
+function macroInit() {
+  macroLoadData();
+  macroCurrentDate = today();
+  document.getElementById('mac-date').value = macroCurrentDate;
+  const now = new Date();
+  macroSidebarYear = now.getFullYear();
+  macroSidebarMonth = now.getMonth();
+  macroRender();
+}
+
+function macroDayTargets(dateKey) {
+  const day = macroLog[dateKey];
+  return (day && day.targets) ? day.targets : macroTargets;
+}
+function macroDayEntries(dateKey) {
+  const day = macroLog[dateKey];
+  return day ? (day.entries || []) : [];
+}
+function macroDayTotals(dateKey) {
+  return macroDayEntries(dateKey).reduce((acc, e) => ({ cals: acc.cals + (e.cals||0), protein: acc.protein + (e.protein||0) }), { cals: 0, protein: 0 });
+}
+function macroAddEntry(dateKey, entry) {
+  if (!macroLog[dateKey]) macroLog[dateKey] = { targets: { ...macroTargets }, entries: [] };
+  if (!macroLog[dateKey].targets) macroLog[dateKey].targets = { ...macroTargets };
+  macroLog[dateKey].entries.push(entry);
+}
+function macroRemoveEntries(dateKey, catalogId) {
+  const day = macroLog[dateKey];
+  if (!day) return;
+  day.entries = (day.entries || []).filter(e => e.catalogId !== catalogId);
+  if (day.entries.length === 0) delete macroLog[dateKey];
+}
+
+function macroDateChanged() {
+  const v = document.getElementById('mac-date').value;
+  if (!v) return;
+  macroCurrentDate = v;
+  macroRender();
+}
+function macroStepDay(delta) {
+  const d = new Date(macroCurrentDate + 'T00:00:00');
+  d.setDate(d.getDate() + delta);
+  macroCurrentDate = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  document.getElementById('mac-date').value = macroCurrentDate;
+  macroRender();
+}
+function macroGoToDate(dateKey) {
+  macroCurrentDate = dateKey;
+  document.getElementById('mac-date').value = dateKey;
+  macroRender();
+}
+
+function macroRender() {
+  macroRenderFacts();
+  macroRenderQuick();
+  macroRenderVariable();
+  macroRenderCompliance();
+}
+
+function macroFmtNum(n) { return Math.round(n).toLocaleString(); }
+
+function macroRenderFacts() {
+  const t = macroDayTargets(macroCurrentDate);
+  const totals = macroDayTotals(macroCurrentDate);
+  const isToday = macroCurrentDate === today();
+  document.getElementById('mac-facts-title').textContent = isToday ? "TODAY'S FACTS" : `FACTS — ${macroCurrentDate}`;
+
+  // Calories
+  document.getElementById('mac-cal-num').textContent = macroFmtNum(totals.cals);
+  document.getElementById('mac-cal-of').textContent = `of ${macroFmtNum(t.calLow)}–${macroFmtNum(t.calHigh)}`;
+  const calPill = document.getElementById('mac-cal-pill');
+  const lowB = t.calLow*(1-MACRO_TOL), highB = t.calHigh*(1+MACRO_TOL);
+  let calState;
+  if (macroCalCompliant(totals.cals, t)) { calState = 'ok'; calPill.textContent = 'On target'; }
+  else if (totals.cals < lowB) { calState = 'under'; calPill.textContent = `${macroFmtNum(lowB - totals.cals)} kcal to go`; }
+  else { calState = 'over'; calPill.textContent = `${macroFmtNum(totals.cals - highB)} kcal over`; }
+  calPill.className = 'mac-pill ' + calState;
+
+  // Thermometer
+  const pad = (t.calHigh - t.calLow) * 0.6 || 200;
+  const dLo = t.calLow - pad, dHi = t.calHigh + pad;
+  const pos = v => Math.max(0, Math.min(100, (v - dLo) / (dHi - dLo) * 100));
+  const markerColor = calState === 'ok' ? 'var(--green)' : calState === 'under' ? '#5f95c7' : 'var(--red)';
+  document.getElementById('mac-thermo').innerHTML = `
+    <div class="mac-thermo-track"></div>
+    <div class="mac-thermo-band" style="left:${pos(t.calLow)}%;width:${pos(t.calHigh)-pos(t.calLow)}%"></div>
+    <div class="mac-thermo-tick" style="left:${pos(t.calLow)}%"></div>
+    <div class="mac-thermo-tick" style="left:${pos(t.calHigh)}%"></div>
+    <div class="mac-thermo-ticklabel" style="left:${pos(t.calLow)}%">${macroFmtNum(t.calLow)}</div>
+    <div class="mac-thermo-ticklabel" style="left:${pos(t.calHigh)}%">${macroFmtNum(t.calHigh)}</div>
+    <div class="mac-thermo-marker" style="left:${pos(totals.cals)}%;background:${markerColor}"></div>`;
+
+  // Protein
+  document.getElementById('mac-pro-num').textContent = `${Math.round(totals.protein)}g`;
+  document.getElementById('mac-pro-of').textContent = `of ${t.protein}g`;
+  const proPill = document.getElementById('mac-pro-pill');
+  if (!macroProteinCompliant(totals.protein, t)) {
+    proPill.textContent = `${Math.ceil(t.protein*(1-MACRO_TOL) - totals.protein)}g to go`;
+    proPill.className = 'mac-pill under';
+  } else if (totals.protein > t.protein) {
+    proPill.textContent = `+${Math.round(totals.protein - t.protein)}g over target`;
+    proPill.className = 'mac-pill ok';
+  } else {
+    proPill.textContent = 'Target met';
+    proPill.className = 'mac-pill ok';
+  }
+  const dom = t.protein * 1.3 || 1;
+  const fillPct = Math.min(totals.protein, t.protein) / dom * 100;
+  const overPct = Math.max(0, Math.min(totals.protein, dom) - t.protein) / dom * 100;
+  const tgtPct = Math.min(100, t.protein / dom * 100);
+  document.getElementById('mac-pbar').innerHTML = `
+    <div class="mac-pbar-fill" style="width:${fillPct}%"></div>
+    <div class="mac-pbar-over" style="left:${tgtPct}%;width:${overPct}%"></div>
+    <div class="mac-pbar-target" style="left:${tgtPct}%"></div>`;
+}
+
+function macroRenderQuick() {
+  const items = macroCatalog.filter(i => i.kind === 'quick');
+  const entries = macroDayEntries(macroCurrentDate);
+  const el = document.getElementById('mac-quick-body');
+  if (!items.length) { el.innerHTML = '<div class="empty-state">No one-click items yet. Add one via "+ Add usual item" below.</div>'; return; }
+  el.innerHTML = items.map(i => {
+    const logged = entries.some(e => e.catalogId === i.id);
+    return `<div class="mac-row mac-cols-quick ${logged ? 'logged' : ''}">
+      <input type="checkbox" ${logged ? 'checked' : ''} onchange="macroToggleQuick('${i.id}', this)">
+      <span class="mac-name">${macroEsc(i.name)}</span>
+      <span class="mac-num">${i.proteinPerServing}g</span>
+      <span class="mac-num">${macroFmtNum(i.calsPerServing)}</span>
+      <button class="mac-row-edit" onclick="macroOpenEditItem('${i.id}')">&#9998;</button>
+    </div>`;
+  }).join('');
+}
+
+function macroToggleQuick(catalogId, cb) {
+  const item = macroCatalog.find(i => i.id === catalogId);
+  if (!item) return;
+  if (cb.checked) {
+    macroAddEntry(macroCurrentDate, {
+      id: 'me-' + Date.now(), catalogId, name: item.name, qtyLabel: '1 serving',
+      cals: item.calsPerServing, protein: item.proteinPerServing,
+      time: new Date().toTimeString().slice(0,5),
+    });
+    showToast(`${item.name} logged`);
+  } else {
+    macroRemoveEntries(macroCurrentDate, catalogId);
+  }
+  macroSaveLog();
+  macroRender();
+}
+
+function macroRenderVariable() {
+  const items = macroCatalog.filter(i => i.kind === 'variable');
+  const entries = macroDayEntries(macroCurrentDate);
+  const el = document.getElementById('mac-var-body');
+  if (!items.length) { el.innerHTML = '<div class="empty-state">No by-amount items yet.</div>'; return; }
+  el.innerHTML = items.map(i => {
+    const entry = entries.find(e => e.catalogId === i.id);
+    const logged = !!entry;
+    const grams = logged ? entry.grams : '';
+    const proStr = logged ? `${Math.round(entry.protein*10)/10}g` : '–';
+    const calStr = logged ? macroFmtNum(entry.cals) : '–';
+    return `<div class="mac-row mac-cols-var ${logged ? 'logged' : ''}">
+      <input type="checkbox" ${logged ? 'checked' : ''} onchange="macroToggleVar('${i.id}', this)">
+      <span class="mac-name">${macroEsc(i.name)}</span>
+      <input type="number" class="mac-grams-input" id="mac-grams-${i.id}" min="0" step="1" value="${grams}" placeholder="g" ${logged ? 'disabled' : ''}
+        oninput="macroVarGramsInput('${i.id}')" onkeydown="if(event.key==='Enter'){ macroVarEnter('${i.id}'); }">
+      <span class="mac-num" id="mac-var-pro-${i.id}">${proStr}</span>
+      <span class="mac-num" id="mac-var-cal-${i.id}">${calStr}</span>
+      <button class="mac-row-edit" onclick="macroOpenEditItem('${i.id}')">&#9998;</button>
+    </div>`;
+  }).join('');
+}
+
+function macroVarGramsInput(catalogId) {
+  const item = macroCatalog.find(i => i.id === catalogId);
+  if (!item) return;
+  const g = parseFloat(document.getElementById('mac-grams-' + catalogId).value);
+  const proEl = document.getElementById('mac-var-pro-' + catalogId);
+  const calEl = document.getElementById('mac-var-cal-' + catalogId);
+  if (isNaN(g) || g <= 0) { proEl.textContent = '–'; calEl.textContent = '–'; return; }
+  proEl.textContent = `${Math.round(item.proteinPer100 * g / 100 * 10) / 10}g`;
+  calEl.textContent = macroFmtNum(item.calsPer100 * g / 100);
+}
+
+function macroVarEnter(catalogId) {
+  const entries = macroDayEntries(macroCurrentDate);
+  if (entries.some(e => e.catalogId === catalogId)) return;
+  macroToggleVar(catalogId, { checked: true });
+}
+
+function macroToggleVar(catalogId, cb) {
+  const item = macroCatalog.find(i => i.id === catalogId);
+  if (!item) return;
+  if (cb.checked) {
+    const input = document.getElementById('mac-grams-' + catalogId);
+    const g = parseFloat(input.value);
+    if (isNaN(g) || g <= 0) {
+      if (cb.checked !== undefined && cb.tagName) cb.checked = false;
+      input.focus();
+      showToast('Enter grams first');
+      return;
+    }
+    macroAddEntry(macroCurrentDate, {
+      id: 'me-' + Date.now(), catalogId, name: item.name, qtyLabel: `${g}g`, grams: g,
+      cals: Math.round(item.calsPer100 * g / 100),
+      protein: Math.round(item.proteinPer100 * g / 100 * 10) / 10,
+      time: new Date().toTimeString().slice(0,5),
+    });
+    showToast(`${item.name} logged`);
+  } else {
+    macroRemoveEntries(macroCurrentDate, catalogId);
+  }
+  macroSaveLog();
+  macroRender();
+}
+
+// ── Add/edit item modal ──
+function macroSetKind(kind) {
+  macroPendingKind = kind;
+  document.getElementById('mac-kind-quick').classList.toggle('active', kind === 'quick');
+  document.getElementById('mac-kind-variable').classList.toggle('active', kind === 'variable');
+  document.getElementById('mac-fields-quick').style.display = kind === 'quick' ? 'grid' : 'none';
+  document.getElementById('mac-fields-variable').style.display = kind === 'variable' ? 'block' : 'none';
+}
+
+function macroOpenAddItem() {
+  macroEditingItemId = null;
+  document.getElementById('mac-item-modal-title').textContent = 'Add item';
+  document.getElementById('mac-item-save-btn').textContent = 'Add item';
+  document.getElementById('mac-item-delete').style.display = 'none';
+  ['mac-item-name','mac-item-cals-serv','mac-item-pro-serv','mac-item-cals-100','mac-item-pro-100'].forEach(id => { document.getElementById(id).value = ''; });
+  macroSetKind('quick');
+  document.getElementById('mac-item-overlay').style.display = 'flex';
+  document.getElementById('mac-item-name').focus();
+}
+
+function macroOpenEditItem(id) {
+  const item = macroCatalog.find(i => i.id === id);
+  if (!item) return;
+  macroEditingItemId = id;
+  document.getElementById('mac-item-modal-title').textContent = 'Edit item';
+  document.getElementById('mac-item-save-btn').textContent = 'Save changes';
+  document.getElementById('mac-item-delete').style.display = '';
+  document.getElementById('mac-item-name').value = item.name;
+  document.getElementById('mac-item-cals-serv').value = item.kind === 'quick' ? item.calsPerServing : '';
+  document.getElementById('mac-item-pro-serv').value = item.kind === 'quick' ? item.proteinPerServing : '';
+  document.getElementById('mac-item-cals-100').value = item.kind === 'variable' ? item.calsPer100 : '';
+  document.getElementById('mac-item-pro-100').value = item.kind === 'variable' ? item.proteinPer100 : '';
+  macroSetKind(item.kind);
+  document.getElementById('mac-item-overlay').style.display = 'flex';
+}
+
+function macroCloseItemModal() {
+  document.getElementById('mac-item-overlay').style.display = 'none';
+  macroEditingItemId = null;
+}
+
+function macroSaveItem() {
+  const name = document.getElementById('mac-item-name').value.trim();
+  if (!name) { showToast('Enter a name'); return; }
+  let item;
+  if (macroPendingKind === 'quick') {
+    const cals = parseFloat(document.getElementById('mac-item-cals-serv').value);
+    const pro = parseFloat(document.getElementById('mac-item-pro-serv').value);
+    if (isNaN(cals) || isNaN(pro)) { showToast('Fill in calories and protein'); return; }
+    item = { id: macroEditingItemId || ('mi-' + Date.now()), name, kind: 'quick', calsPerServing: cals, proteinPerServing: pro };
+  } else {
+    const cals = parseFloat(document.getElementById('mac-item-cals-100').value);
+    const pro = parseFloat(document.getElementById('mac-item-pro-100').value);
+    if (isNaN(cals) || isNaN(pro)) { showToast('Fill in calories and protein'); return; }
+    item = { id: macroEditingItemId || ('mi-' + Date.now()), name, kind: 'variable', calsPer100: cals, proteinPer100: pro };
+  }
+  if (macroEditingItemId) {
+    const idx = macroCatalog.findIndex(i => i.id === macroEditingItemId);
+    if (idx !== -1) macroCatalog[idx] = item; else macroCatalog.push(item);
+    showToast('Item updated');
+  } else {
+    macroCatalog.push(item);
+    showToast(`"${name}" added`);
+  }
+  macroSaveCatalog();
+  macroCloseItemModal();
+  macroRender();
+}
+
+function macroDeleteItem() {
+  if (!macroEditingItemId) return;
+  macroCatalog = macroCatalog.filter(i => i.id !== macroEditingItemId);
+  macroRemoveEntries(macroCurrentDate, macroEditingItemId);
+  macroSaveCatalog();
+  macroSaveLog();
+  macroCloseItemModal();
+  macroRender();
+  showToast('Item deleted');
+}
+
+// ── Targets modal ──
+function macroOpenTargets() {
+  const t = macroDayTargets(macroCurrentDate);
+  document.getElementById('mac-t-callow').value = t.calLow;
+  document.getElementById('mac-t-calhigh').value = t.calHigh;
+  document.getElementById('mac-t-protein').value = t.protein;
+  document.getElementById('mac-targets-overlay').style.display = 'flex';
+}
+function macroCloseTargets() {
+  document.getElementById('mac-targets-overlay').style.display = 'none';
+}
+function macroSaveTargetsModal() {
+  const calLow = parseFloat(document.getElementById('mac-t-callow').value);
+  const calHigh = parseFloat(document.getElementById('mac-t-calhigh').value);
+  const protein = parseFloat(document.getElementById('mac-t-protein').value);
+  if (isNaN(calLow) || isNaN(calHigh) || isNaN(protein) || calLow <= 0 || calHigh < calLow || protein <= 0) { showToast('Check the target values'); return; }
+  macroTargets = { calLow, calHigh, protein };
+  macroSaveTargets();
+  // Update the currently-viewed day's snapshot if it has entries
+  const day = macroLog[macroCurrentDate];
+  if (day && day.entries && day.entries.length) {
+    day.targets = { ...macroTargets };
+    macroSaveLog();
+  }
+  macroCloseTargets();
+  macroRender();
+  showToast('Targets updated');
+}
+
+// ── Compliance sidebar ──
+function macroSidebarStep(delta) {
+  macroSidebarMonth += delta;
+  if (macroSidebarMonth < 0) { macroSidebarMonth = 11; macroSidebarYear--; }
+  if (macroSidebarMonth > 11) { macroSidebarMonth = 0; macroSidebarYear++; }
+  macroRenderCompliance();
+}
+
+function macroRenderCompliance() {
+  const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  document.getElementById('mac-side-month-label').textContent = `${monthNames[macroSidebarMonth]} ${macroSidebarYear}`;
+  const listEl = document.getElementById('mac-side-list');
+
+  const now = new Date();
+  const curY = now.getFullYear(), curM = now.getMonth();
+  const isFuture = macroSidebarYear > curY || (macroSidebarYear === curY && macroSidebarMonth > curM);
+  if (isFuture) { listEl.innerHTML = '<div class="empty-state" style="padding:20px 4px">Nothing to show yet</div>'; return; }
+
+  const isCurrent = macroSidebarYear === curY && macroSidebarMonth === curM;
+  const lastDay = isCurrent ? now.getDate() : new Date(macroSidebarYear, macroSidebarMonth + 1, 0).getDate();
+
+  let html = '';
+  for (let d = lastDay; d >= 1; d--) {
+    const dateKey = `${macroSidebarYear}-${String(macroSidebarMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const wk = new Date(macroSidebarYear, macroSidebarMonth, d).toLocaleDateString('en-AU', { weekday: 'short' });
+    const day = macroLog[dateKey];
+    let dot = 'none';
+    if (day && day.entries && day.entries.length) {
+      const t = macroDayTargets(dateKey);
+      const totals = macroDayTotals(dateKey);
+      dot = (macroCalCompliant(totals.cals, t) && macroProteinCompliant(totals.protein, t)) ? 'ok' : 'fail';
+    }
+    html += `<div class="mac-side-day" onclick="macroGoToDate('${dateKey}')"><span class="dnum">${d}</span><span class="dwk">${wk}</span><span class="mac-dot ${dot}"></span></div>`;
+  }
+  listEl.innerHTML = html;
 }
 
 // ── Boot ──
