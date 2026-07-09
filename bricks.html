@@ -322,7 +322,7 @@
   </button>
   <div style="margin-left:auto;display:flex;align-items:center;gap:12px;">
     <span id="drive-status" class="drive-status"></span>
-    <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text)">v2.9</span>
+    <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text)">v3.0</span>
   </div>
 </nav>
 
@@ -698,9 +698,8 @@
       <span id="chore-add-toggle-label">+ Add task</span>
     </button>
     <div class="add-task-panel" id="chore-add-panel" style="display:none">
-      <div class="add-task-grid">
+      <div class="add-task-grid" style="grid-template-columns:1.5fr 1fr;">
         <div class="field"><label>Task name</label><input type="text" id="chore-new-name" placeholder="e.g. Wash dog bed" maxlength="60"></div>
-        <div class="field"><label>Remind every (days)</label><input type="number" id="chore-new-interval" placeholder="21" min="1" max="365"></div>
         <div class="field">
           <label>Color</label>
           <select id="chore-new-color">
@@ -1576,7 +1575,10 @@ function choreRender() {
   if (!chores.length) {
     listEl.innerHTML = '<div class="empty-state">No tasks yet. Add one below.</div>';
   } else {
-    listEl.innerHTML = sorted.map(c => `
+    listEl.innerHTML = sorted.map(c => {
+      const daysSince = Math.floor((Date.now() - new Date(c.lastDone + 'T00:00:00')) / 86400000);
+      const daysSinceStr = daysSince <= 0 ? 'today' : daysSince === 1 ? '1 day' : daysSince + ' days';
+      return `
       <div class="chore-row">
         <div class="chore-dot" style="background:${CHORE_DOT_COLORS[c.color]||'#999'}"></div>
         <div class="chore-main">
@@ -1586,18 +1588,30 @@ function choreRender() {
         <div class="chore-meta">
           <div class="chore-last-col">
             <div class="chore-last-label">Last completed</div>
-            <div class="chore-last-value">${fmtShort(c.lastDone)} · ${fmtAgo(c.lastDone)}</div>
+            <input type="date" value="${c.lastDone}" onchange="choreSetDate('${c.id}', this.value)"
+              style="font-family:'DM Mono',monospace;font-size:12px;border:1px solid var(--border);border-radius:6px;padding:4px 8px;background:var(--bg);color:var(--text);cursor:pointer;outline:none;">
           </div>
-          <div class="chore-interval">every ${c.intervalDays}d</div>
+          <div class="chore-last-col" style="min-width:80px;">
+            <div class="chore-last-label">Days since</div>
+            <div class="chore-last-value">${daysSinceStr}</div>
+          </div>
           <button class="btn-log-now" onclick="choreLogNow('${c.id}')">Log now</button>
         </div>
       </div>
-    `).join('');
+    `}).join('');
   }
 
   // Populate task dropdown
   const sel = document.getElementById('chore-log-task');
   if (sel) sel.innerHTML = chores.map(c => `<option value="${c.id}">${esc(c.name)}</option>`).join('');
+}
+
+function choreSetDate(id, date) {
+  const c = chores.find(x => x.id === id);
+  if (!c || !date) return;
+  c.lastDone = date;
+  choreSaveData();
+  choreRender();
 }
 
 function choreLogNow(id) {
@@ -1631,13 +1645,11 @@ function choreToggleAdd() {
 
 function choreAddTask() {
   const name = document.getElementById('chore-new-name').value.trim();
-  const interval = parseInt(document.getElementById('chore-new-interval').value, 10);
   const color = document.getElementById('chore-new-color').value;
   if (!name) { showToast('Enter a task name'); return; }
-  if (!interval || interval < 1) { showToast('Enter a valid interval'); return; }
   if (chores.some(c => c.name.toLowerCase() === name.toLowerCase())) { showToast('Task already exists'); return; }
   const id = 'c-' + Date.now();
-  chores.push({ id, name, intervalDays: interval, color, lastDone: today(), note: '' });
+  chores.push({ id, name, color, lastDone: today(), note: '' });
   choreSaveData();
   document.getElementById('chore-new-name').value = '';
   document.getElementById('chore-new-interval').value = '';
