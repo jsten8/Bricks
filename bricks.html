@@ -322,7 +322,7 @@
   </button>
   <div style="margin-left:auto;display:flex;align-items:center;gap:12px;">
     <span id="drive-status" class="drive-status"></span>
-    <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text)">v2.7</span>
+    <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text)">v2.8</span>
   </div>
 </nav>
 
@@ -1726,17 +1726,19 @@ function bsRenderChart() {
   const chronological = [...bsEntries].sort((a, b) => new Date(a.date) - new Date(b.date));
   const allDates = [...new Set(chronological.map(e => e.date))];
 
-  const activeMetrics = BS_METRICS.filter(m => bsActiveMetrics.has(m.key));
+  const CALIPER_KEYS = ['chestPinch', 'stomachPinch', 'legPinch'];
+  const soloMetrics = BS_METRICS.filter(m => !CALIPER_KEYS.includes(m.key) && bsActiveMetrics.has(m.key));
+  const caliperMetrics = BS_METRICS.filter(m => CALIPER_KEYS.includes(m.key) && bsActiveMetrics.has(m.key));
+  const showCaliperCard = caliperMetrics.length > 0;
 
-  if (!activeMetrics.length || chronological.length === 0) {
+  if (!soloMetrics.length && !showCaliperCard || chronological.length === 0) {
     grid.innerHTML = '';
     return;
   }
 
   const fmtShort = dateStr => new Date(dateStr + 'T00:00:00').toLocaleDateString('en-AU', { month: 'short', day: 'numeric' });
 
-  grid.className = 'bs-charts-grid';
-  grid.innerHTML = activeMetrics.map(m => {
+  const soloCardHtml = soloMetrics.map(m => {
     const vals = allDates.map(date => {
       const e = chronological.find(en => en.date === date);
       return (e && e[m.key] !== undefined && e[m.key] !== '') ? Number(e[m.key]) : null;
@@ -1764,8 +1766,29 @@ function bsRenderChart() {
     </div>`;
   }).join('');
 
-  // Render each mini chart after DOM is updated
-  activeMetrics.forEach(m => {
+  const caliperCardHtml = showCaliperCard ? (() => {
+    const legendDots = caliperMetrics.map(m => {
+      const vals = allDates.map(date => { const e = chronological.find(en => en.date === date); return (e && e[m.key] !== undefined) ? Number(e[m.key]) : null; }).filter(v => v !== null);
+      const latest = vals[vals.length - 1];
+      return `<span style="display:inline-flex;align-items:center;gap:4px;font-size:10px;color:var(--muted);">
+        <span style="width:6px;height:6px;border-radius:50%;background:${m.color};display:inline-block;"></span>
+        ${m.label.replace(' pinch', '')} ${latest !== undefined ? latest.toFixed(1) + 'mm' : '—'}
+      </span>`;
+    }).join('');
+    return `<div class="bs-mini-card">
+      <div class="bs-mini-head">
+        <div class="bs-mini-label">Caliper pinches</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">${legendDots}</div>
+      </div>
+      <div style="position:relative;height:80px;margin-top:10px;"><canvas id="bs-mini-caliper"></canvas></div>
+    </div>`;
+  })() : '';
+
+  grid.className = 'bs-charts-grid';
+  grid.innerHTML = soloCardHtml + caliperCardHtml;
+
+  // Solo metric charts
+  soloMetrics.forEach(m => {
     const canvas = document.getElementById('bs-mini-' + m.key);
     if (!canvas) return;
     const vals = allDates.map(date => {
@@ -1795,24 +1818,61 @@ function bsRenderChart() {
         maintainAspectRatio: false,
         plugins: {
           legend: { display: false },
-          tooltip: {
-            callbacks: {
-              title: items => fmtShort(items[0].label),
-              label: item => item.parsed.y !== null ? ` ${item.parsed.y.toFixed(m.decimals)}${m.unit}` : '',
-            }
-          }
+          tooltip: { callbacks: { title: items => fmtShort(items[0].label), label: item => item.parsed.y !== null ? ` ${item.parsed.y.toFixed(m.decimals)}${m.unit}` : '' } }
         },
         scales: {
           x: { display: false },
-          y: {
-            grid: { color: '#E8E4DE' },
-            border: { dash: [3, 3] },
-            ticks: { font: { family: 'DM Mono', size: 9 }, color: '#9A9088', maxTicksLimit: 3, callback: v => v + m.unit }
-          }
+          y: { grid: { color: '#E8E4DE' }, border: { dash: [3, 3] }, ticks: { font: { family: 'DM Mono', size: 9 }, color: '#9A9088', maxTicksLimit: 3, callback: v => v + m.unit } }
         }
       }
     });
   });
+
+  // Combined caliper chart
+  if (showCaliperCard) {
+    const canvas = document.getElementById('bs-mini-caliper');
+    if (canvas) {
+      bsCharts['caliper'] = new Chart(canvas.getContext('2d'), {
+        type: 'line',
+        data: {
+          labels: allDates,
+          datasets: caliperMetrics.map(m => {
+            const vals = allDates.map(date => {
+              const e = chronological.find(en => en.date === date);
+              return (e && e[m.key] !== undefined && e[m.key] !== '') ? Number(e[m.key]) : null;
+            });
+            return {
+              label: m.label,
+              data: vals,
+              borderColor: m.color,
+              backgroundColor: m.color,
+              pointBackgroundColor: vals.map((_, i) => i === vals.length - 1 ? m.color : m.color + '70'),
+              pointBorderColor: '#F7F5F2',
+              pointBorderWidth: 2,
+              pointRadius: vals.map((_, i) => i === vals.length - 1 ? 6 : 3),
+              borderWidth: 2,
+              tension: 0.3,
+              fill: false,
+              spanGaps: false,
+            };
+          })
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
+          plugins: {
+            legend: { display: false },
+            tooltip: { callbacks: { title: items => fmtShort(items[0].label), label: item => item.parsed.y !== null ? ` ${item.dataset.label.replace(' pinch','')}: ${item.parsed.y.toFixed(1)}mm` : '' } }
+          },
+          scales: {
+            x: { display: false },
+            y: { grid: { color: '#E8E4DE' }, border: { dash: [3, 3] }, ticks: { font: { family: 'DM Mono', size: 9 }, color: '#9A9088', maxTicksLimit: 3, callback: v => v + 'mm' } }
+          }
+        }
+      });
+    }
+  }
 }
 
 function bsRenderList() {
