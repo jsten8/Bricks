@@ -322,7 +322,7 @@
   </button>
   <div style="margin-left:auto;display:flex;align-items:center;gap:12px;">
     <span id="drive-status" class="drive-status"></span>
-    <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text)">v3.0</span>
+    <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text)">v3.1</span>
   </div>
 </nav>
 
@@ -1579,11 +1579,10 @@ function choreRender() {
       const daysSince = Math.floor((Date.now() - new Date(c.lastDone + 'T00:00:00')) / 86400000);
       const daysSinceStr = daysSince <= 0 ? 'today' : daysSince === 1 ? '1 day' : daysSince + ' days';
       return `
-      <div class="chore-row">
+      <div class="chore-row" style="flex-wrap:wrap;">
         <div class="chore-dot" style="background:${CHORE_DOT_COLORS[c.color]||'#999'}"></div>
         <div class="chore-main">
           <div class="chore-name">${esc(c.name)}</div>
-          ${c.note ? `<div class="chore-note">${esc(c.note)}</div>` : ''}
         </div>
         <div class="chore-meta">
           <div class="chore-last-col">
@@ -1595,7 +1594,16 @@ function choreRender() {
             <div class="chore-last-label">Days since</div>
             <div class="chore-last-value">${daysSinceStr}</div>
           </div>
+          <button class="btn-log-now" onclick="choreToggleNote('${c.id}')" id="chore-note-btn-${c.id}" style="background:${c.note ? 'var(--accent)' : ''};color:${c.note ? 'white' : ''};border-color:${c.note ? 'var(--accent)' : ''};">✎ Notes</button>
           <button class="btn-log-now" onclick="choreLogNow('${c.id}')">Log now</button>
+        </div>
+        <div id="chore-note-panel-${c.id}" style="display:none;width:100%;padding:12px 0 4px 26px;">
+          <textarea id="chore-note-text-${c.id}" rows="2" placeholder="e.g. noticed it started to smell after 14 days…"
+            style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:7px;font-family:'DM Sans',sans-serif;font-size:13px;background:var(--bg);color:var(--text);outline:none;resize:vertical;">${esc(c.note||'')}</textarea>
+          <div style="display:flex;gap:8px;margin-top:8px;">
+            <button class="btn-log-now" onclick="choreSaveNote('${c.id}')">Save note</button>
+            <button class="btn-log-now" onclick="choreToggleNote('${c.id}')">Cancel</button>
+          </div>
         </div>
       </div>
     `}).join('');
@@ -1604,6 +1612,23 @@ function choreRender() {
   // Populate task dropdown
   const sel = document.getElementById('chore-log-task');
   if (sel) sel.innerHTML = chores.map(c => `<option value="${c.id}">${esc(c.name)}</option>`).join('');
+}
+
+function choreToggleNote(id) {
+  const panel = document.getElementById('chore-note-panel-' + id);
+  if (!panel) return;
+  const open = panel.style.display === 'none';
+  panel.style.display = open ? 'block' : 'none';
+  if (open) document.getElementById('chore-note-text-' + id).focus();
+}
+
+function choreSaveNote(id) {
+  const c = chores.find(x => x.id === id);
+  if (!c) return;
+  c.note = document.getElementById('chore-note-text-' + id).value.trim();
+  choreSaveData();
+  choreRender();
+  showToast('Note saved');
 }
 
 function choreSetDate(id, date) {
