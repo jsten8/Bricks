@@ -278,10 +278,16 @@
   .bs-legend-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
   .bs-legend-name { color: var(--text); }
   .bs-legend-val { font-family: 'DM Mono', monospace; font-weight: 500; color: var(--text); }
-  .bs-chart-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 24px; margin-bottom: 20px; }
-  .bs-chart-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 20px; }
-  .bs-chart-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 500; }
-  .bs-chart-range { font-size: 12px; color: var(--muted); }
+  .bs-charts-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
+  @media (max-width: 700px) { .bs-charts-grid { grid-template-columns: 1fr 1fr; } }
+  .bs-mini-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; }
+  .bs-mini-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px; }
+  .bs-mini-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); font-weight: 500; }
+  .bs-mini-latest { font-family: 'DM Mono', monospace; font-size: 15px; font-weight: 500; }
+  .bs-mini-delta { font-size: 11px; margin-bottom: 10px; }
+  .bs-mini-delta.up { color: var(--green); }
+  .bs-mini-delta.down { color: var(--red); }
+  .bs-mini-delta.flat { color: var(--muted); }
   .bs-entry-row { display: flex; align-items: center; gap: 16px; padding: 12px 20px; border-bottom: 1px solid var(--border); font-size: 13px; }
   .bs-entry-row:last-child { border-bottom: none; }
   .bs-entry-date { font-family: 'DM Mono', monospace; width: 72px; flex-shrink: 0; color: var(--muted); font-size: 12px; }
@@ -316,7 +322,7 @@
   </button>
   <div style="margin-left:auto;display:flex;align-items:center;gap:12px;">
     <span id="drive-status" class="drive-status"></span>
-    <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text)">v2.6</span>
+    <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text)">v2.7</span>
   </div>
 </nav>
 
@@ -725,16 +731,7 @@
 
   <div class="bs-legend-row" id="bs-legend-row"></div>
 
-  <div class="bs-chart-card">
-    <div class="bs-chart-head">
-      <div class="bs-chart-label">Composition trends · % change from first check-in</div>
-      <div class="bs-chart-range" id="bs-chart-range"></div>
-    </div>
-    <div style="position:relative;height:300px;">
-      <canvas id="bs-chart"></canvas>
-    </div>
-    <div id="bs-selected-detail" style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border);min-height:40px;"></div>
-  </div>
+  <div id="bs-charts-grid"></div>
 
   <div class="log-section" style="margin-bottom:32px">
     <h3>Check-ins</h3>
@@ -1676,8 +1673,6 @@ const BS_METRICS = [
 
 let bsEntries = [];
 let bsActiveMetrics = new Set(BS_METRICS.map(m => m.key));
-let bsChart = null;
-let bsSelectedIdx = null;
 
 function bsLoadData() {
   try { const r = localStorage.getItem(BS_KEY); bsEntries = r ? JSON.parse(r) : []; } catch { bsEntries = []; }
@@ -1690,9 +1685,6 @@ function bsSaveData() {
 function bsInit() {
   bsLoadData();
   document.getElementById('bs-date').value = today();
-  const chronological = [...bsEntries].sort((a, b) => new Date(a.date) - new Date(b.date));
-  const allDates = [...new Set(chronological.map(e => e.date))];
-  bsSelectedIdx = allDates.length > 0 ? allDates.length - 1 : null;
   bsRender();
 }
 
@@ -1723,141 +1715,104 @@ function bsToggleMetric(key) {
   bsRender();
 }
 
-function bsRenderChart() {
-  const ctx = document.getElementById('bs-chart').getContext('2d');
-  if (bsChart) { bsChart.destroy(); bsChart = null; }
+let bsCharts = {};
 
+function bsRenderChart() {
+  // Destroy old charts
+  Object.values(bsCharts).forEach(c => c.destroy());
+  bsCharts = {};
+
+  const grid = document.getElementById('bs-charts-grid');
   const chronological = [...bsEntries].sort((a, b) => new Date(a.date) - new Date(b.date));
-  if (chronological.length === 0) {
-    document.getElementById('bs-chart-range').textContent = '';
+  const allDates = [...new Set(chronological.map(e => e.date))];
+
+  const activeMetrics = BS_METRICS.filter(m => bsActiveMetrics.has(m.key));
+
+  if (!activeMetrics.length || chronological.length === 0) {
+    grid.innerHTML = '';
     return;
   }
 
-  const allDates = [...new Set(chronological.map(e => e.date))];
+  const fmtShort = dateStr => new Date(dateStr + 'T00:00:00').toLocaleDateString('en-AU', { month: 'short', day: 'numeric' });
 
-  const fmtShort = dateStr => {
-    const d = new Date(dateStr + 'T00:00:00');
-    return d.toLocaleDateString('en-AU', { month: 'short', day: 'numeric' });
-  };
-  document.getElementById('bs-chart-range').textContent =
-    allDates.length ? fmtShort(allDates[0]) + ' – ' + fmtShort(allDates[allDates.length - 1]) : '';
-
-  // Per-metric raw values lookup for tooltips
-  const rawLookup = {};
-  BS_METRICS.forEach(m => { rawLookup[m.key] = {}; });
-  chronological.forEach(e => {
-    BS_METRICS.forEach(m => {
-      if (e[m.key] !== undefined && e[m.key] !== null && e[m.key] !== '') rawLookup[m.key][e.date] = Number(e[m.key]);
+  grid.className = 'bs-charts-grid';
+  grid.innerHTML = activeMetrics.map(m => {
+    const vals = allDates.map(date => {
+      const e = chronological.find(en => en.date === date);
+      return (e && e[m.key] !== undefined && e[m.key] !== '') ? Number(e[m.key]) : null;
     });
-  });
+    const defined = vals.filter(v => v !== null);
+    const latest = defined[defined.length - 1];
+    const first = defined[0];
+    const diff = (latest !== undefined && first !== undefined && defined.length > 1) ? latest - first : null;
+    const pct = (diff !== null && first !== 0) ? (diff / Math.abs(first) * 100) : null;
+    const deltaClass = diff === null ? 'flat' : diff > 0 ? 'up' : diff < 0 ? 'down' : 'flat';
+    const arrow = diff === null ? '' : diff > 0 ? '↑' : '↓';
+    const deltaStr = diff !== null
+      ? `${arrow} ${Math.abs(diff).toFixed(m.decimals)}${m.unit}${pct !== null ? ` (${pct >= 0 ? '+' : ''}${pct.toFixed(1)}%)` : ''}`
+      : '—';
+    return `<div class="bs-mini-card">
+      <div class="bs-mini-head">
+        <div class="bs-mini-label" style="display:flex;align-items:center;gap:6px;">
+          <span style="width:7px;height:7px;border-radius:50%;background:${m.color};display:inline-block;flex-shrink:0;"></span>
+          ${m.label}
+        </div>
+        <div class="bs-mini-latest">${latest !== undefined ? latest.toFixed(m.decimals) + m.unit : '—'}</div>
+      </div>
+      <div class="bs-mini-delta ${deltaClass}">${deltaStr}</div>
+      <div style="position:relative;height:80px;"><canvas id="bs-mini-${m.key}"></canvas></div>
+    </div>`;
+  }).join('');
 
-  const metricDatasets = BS_METRICS
-    .filter(m => bsActiveMetrics.has(m.key))
-    .map(m => {
-      const firstEntry = chronological.find(e => e[m.key] !== undefined && e[m.key] !== null && e[m.key] !== '');
-      const baseVal = firstEntry ? Number(firstEntry[m.key]) : null;
-      const data = allDates.map(date => {
-        const raw = rawLookup[m.key][date];
-        if (raw === undefined || baseVal === null || baseVal === 0) return null;
-        return parseFloat(((raw - baseVal) / Math.abs(baseVal) * 100).toFixed(2));
-      });
-      return {
-        label: m.label,
-        data,
-        borderColor: m.color,
-        backgroundColor: m.color,
-        pointBackgroundColor: data.map((_, i) => i === bsSelectedIdx ? m.color : m.color + '80'),
-        pointBorderColor: '#F7F5F2',
-        pointBorderWidth: 2,
-        pointRadius: data.map((_, i) => i === bsSelectedIdx ? 7 : 4),
-        pointHoverRadius: 7,
-        borderWidth: 2,
-        tension: 0.3,
-        fill: false,
-        spanGaps: false,
-        _unit: m.unit,
-        _decimals: m.decimals,
-        _key: m.key,
-      };
+  // Render each mini chart after DOM is updated
+  activeMetrics.forEach(m => {
+    const canvas = document.getElementById('bs-mini-' + m.key);
+    if (!canvas) return;
+    const vals = allDates.map(date => {
+      const e = chronological.find(en => en.date === date);
+      return (e && e[m.key] !== undefined && e[m.key] !== '') ? Number(e[m.key]) : null;
     });
-
-  bsChart = new Chart(ctx, {
-    type: 'line',
-    data: { labels: allDates, datasets: metricDatasets },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      interaction: { mode: 'index', intersect: false },
-      onClick: (e, els) => {
-        if (els.length) { bsSelectedIdx = els[0].index; bsRenderChart(); bsRenderSelectedDetail(); }
+    bsCharts[m.key] = new Chart(canvas.getContext('2d'), {
+      type: 'line',
+      data: {
+        labels: allDates,
+        datasets: [{
+          data: vals,
+          borderColor: m.color,
+          backgroundColor: m.color,
+          pointBackgroundColor: vals.map((_, i) => i === vals.length - 1 ? m.color : m.color + '70'),
+          pointBorderColor: '#F7F5F2',
+          pointBorderWidth: 2,
+          pointRadius: vals.map((_, i) => i === vals.length - 1 ? 6 : 3),
+          borderWidth: 2,
+          tension: 0.3,
+          fill: false,
+          spanGaps: false,
+        }]
       },
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          callbacks: {
-            title: items => fmtShort(items[0].label),
-            label: item => {
-              const raw = rawLookup[item.dataset._key]?.[item.label];
-              const pctStr = item.parsed.y !== null ? (item.parsed.y >= 0 ? '+' : '') + item.parsed.y.toFixed(1) + '%' : '';
-              const rawStr = raw !== undefined ? raw.toFixed(item.dataset._decimals) + item.dataset._unit : '';
-              return ` ${item.dataset.label}: ${rawStr} (${pctStr})`;
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              title: items => fmtShort(items[0].label),
+              label: item => item.parsed.y !== null ? ` ${item.parsed.y.toFixed(m.decimals)}${m.unit}` : '',
             }
           }
-        }
-      },
-      scales: {
-        x: {
-          grid: { display: false },
-          ticks: { font: { family: 'DM Mono', size: 10 }, color: '#9A9088' }
         },
-        y: {
-          grid: { color: '#E8E4DE', drawBorder: false },
-          border: { dash: [4, 4] },
-          ticks: {
-            font: { family: 'DM Mono', size: 10 },
-            color: '#9A9088',
-            callback: v => (v >= 0 ? '+' : '') + v + '%'
+        scales: {
+          x: { display: false },
+          y: {
+            grid: { color: '#E8E4DE' },
+            border: { dash: [3, 3] },
+            ticks: { font: { family: 'DM Mono', size: 9 }, color: '#9A9088', maxTicksLimit: 3, callback: v => v + m.unit }
           }
         }
       }
-    }
+    });
   });
-  bsRenderSelectedDetail();
-}
-
-function bsRenderSelectedDetail() {
-  const el = document.getElementById('bs-selected-detail');
-  if (!el) return;
-  const chronological = [...bsEntries].sort((a, b) => new Date(a.date) - new Date(b.date));
-  const allDates = [...new Set(chronological.map(e => e.date))];
-  if (bsSelectedIdx === null || allDates.length === 0) { el.innerHTML = ''; return; }
-
-  const date = allDates[bsSelectedIdx];
-  const entry = chronological.find(e => e.date === date);
-  const fmtShort = dateStr => new Date(dateStr + 'T00:00:00').toLocaleDateString('en-AU', { month: 'short', day: 'numeric', year: 'numeric' });
-
-  const chips = BS_METRICS
-    .filter(m => bsActiveMetrics.has(m.key) && entry && entry[m.key] !== undefined)
-    .map(m => {
-      const val = Number(entry[m.key]);
-      const firstEntry = chronological.find(e => e[m.key] !== undefined && e[m.key] !== null && e[m.key] !== '');
-      const base = firstEntry ? Number(firstEntry[m.key]) : null;
-      const pct = (base && base !== 0) ? ((val - base) / Math.abs(base) * 100) : null;
-      const pctStr = pct !== null ? ` <span style="font-size:11px;opacity:0.7">(${pct >= 0 ? '+' : ''}${pct.toFixed(1)}%)</span>` : '';
-      const arrow = pct !== null ? (pct >= 0 ? '↑' : '↓') : '';
-      const color = pct !== null ? (pct >= 0 ? 'var(--green)' : 'var(--red)') : 'var(--muted)';
-      return `<span style="display:inline-flex;align-items:center;gap:6px;margin-right:18px;font-size:13px;">
-        <span style="width:8px;height:8px;border-radius:50%;background:${m.color};display:inline-block;flex-shrink:0;"></span>
-        <span style="color:var(--muted);font-size:11px;">${m.label}</span>
-        <span style="font-family:'DM Mono',monospace;font-weight:500;">${val.toFixed(m.decimals)}${m.unit}</span>
-        ${pct !== null ? `<span style="color:${color};font-weight:500;font-size:12px;">${arrow}${pctStr}</span>` : ''}
-      </span>`;
-    }).join('');
-
-  el.innerHTML = `<div style="display:flex;align-items:baseline;gap:16px;flex-wrap:wrap;">
-    <span style="font-family:'DM Mono',monospace;font-size:13px;color:var(--muted);flex-shrink:0;">${fmtShort(date)}</span>
-    <div style="display:flex;flex-wrap:wrap;gap:4px 0;">${chips || '<span style="color:var(--muted);font-size:13px;">No data for this date</span>'}</div>
-  </div>`;
 }
 
 function bsRenderList() {
