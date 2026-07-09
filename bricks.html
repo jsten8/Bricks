@@ -419,7 +419,7 @@
   </button>
   <div style="margin-left:auto;display:flex;align-items:center;gap:12px;">
     <span id="drive-status" class="drive-status"></span>
-    <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text)">v3.3</span>
+    <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text)">v3.4</span>
   </div>
 </nav>
 
@@ -1913,7 +1913,6 @@ function choreAddTask() {
   chores.push({ id, name, color, lastDone: today(), note: '' });
   choreSaveData();
   document.getElementById('chore-new-name').value = '';
-  document.getElementById('chore-new-interval').value = '';
   choreToggleAdd();
   choreRender();
   showToast(`"${name}" added`);
