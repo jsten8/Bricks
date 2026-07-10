@@ -419,7 +419,7 @@
   </button>
   <div style="margin-left:auto;display:flex;align-items:center;gap:12px;">
     <span id="drive-status" class="drive-status"></span>
-    <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text)">v3.6</span>
+    <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text)">v3.7</span>
   </div>
 </nav>
 
@@ -1006,9 +1006,9 @@
   <div class="mac-modal">
     <h2>Edit targets</h2>
     <div class="mac-modal-grid" style="grid-template-columns:1fr 1fr 1fr">
+      <div class="field"><label>Protein (g)</label><input type="number" id="mac-t-protein" min="0" step="1"></div>
       <div class="field"><label>Calories low</label><input type="number" id="mac-t-callow" min="0" step="10"></div>
       <div class="field"><label>Calories high</label><input type="number" id="mac-t-calhigh" min="0" step="10"></div>
-      <div class="field"><label>Protein (g)</label><input type="number" id="mac-t-protein" min="0" step="1"></div>
     </div>
     <div class="mac-modal-actions">
       <button class="btn-ghost" onclick="macroCloseTargets()">Cancel</button>
