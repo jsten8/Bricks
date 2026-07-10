@@ -419,7 +419,7 @@
   </button>
   <div style="margin-left:auto;display:flex;align-items:center;gap:12px;">
     <span id="drive-status" class="drive-status"></span>
-    <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text)">v3.4</span>
+    <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text)">v3.5</span>
   </div>
 </nav>
 
@@ -921,7 +921,17 @@
         <div id="mac-var-body"></div>
         <div class="mac-add-item-wrap">
           <button class="btn-manage-toggle" onclick="macroOpenAddItem()">+ Add usual item</button>
+          <button class="btn-manage-toggle" onclick="macroOpenOneOff()">+ One-off item</button>
         </div>
+      </div>
+
+      <div class="mac-section" id="mac-oneoff-section" style="display:none">
+        <div class="mac-section-head">
+          <h3>One-off items</h3>
+          <div class="mac-section-sub">this day only</div>
+        </div>
+        <div class="mac-table-head mac-cols-quick"><span></span><span>Item</span><span class="mac-num-hd">Protein</span><span class="mac-num-hd">Calories</span><span></span></div>
+        <div id="mac-oneoff-body"></div>
       </div>
 
     </div>
@@ -970,6 +980,23 @@
       <button class="mac-btn-delete-item" id="mac-item-delete" style="display:none" onclick="macroDeleteItem()">Delete item</button>
       <button class="btn-ghost" onclick="macroCloseItemModal()">Cancel</button>
       <button class="btn-checkin" id="mac-item-save-btn" onclick="macroSaveItem()">Add item</button>
+    </div>
+  </div>
+</div>
+
+<!-- Macros: one-off item modal -->
+<div class="mac-overlay" id="mac-oneoff-overlay" style="display:none" onclick="if(event.target===this) macroCloseOneOff()">
+  <div class="mac-modal">
+    <h2>Log a one-off item</h2>
+    <div class="mac-modal-hint" style="margin-bottom:14px">For cafe or takeaway items you won't log again. Counts toward this day only — not saved as a usual item.</div>
+    <div class="field" style="margin-bottom:12px"><label>Name</label><input type="text" id="mac-oneoff-name" maxlength="60" placeholder="e.g. Cafe banana bread"></div>
+    <div class="mac-modal-grid">
+      <div class="field"><label>Calories</label><input type="number" id="mac-oneoff-cals" min="0" step="1" placeholder="480"></div>
+      <div class="field"><label>Protein (g)</label><input type="number" id="mac-oneoff-pro" min="0" step="0.5" placeholder="12"></div>
+    </div>
+    <div class="mac-modal-actions">
+      <button class="btn-ghost" onclick="macroCloseOneOff()">Cancel</button>
+      <button class="btn-checkin" onclick="macroSaveOneOff()">Log item</button>
     </div>
   </div>
 </div>
@@ -2309,6 +2336,12 @@ function macroRemoveEntries(dateKey, catalogId) {
   day.entries = (day.entries || []).filter(e => e.catalogId !== catalogId);
   if (day.entries.length === 0) delete macroLog[dateKey];
 }
+function macroRemoveEntryById(dateKey, entryId) {
+  const day = macroLog[dateKey];
+  if (!day) return;
+  day.entries = (day.entries || []).filter(e => e.id !== entryId);
+  if (day.entries.length === 0) delete macroLog[dateKey];
+}
 
 function macroDateChanged() {
   const v = document.getElementById('mac-date').value;
@@ -2333,6 +2366,7 @@ function macroRender() {
   macroRenderFacts();
   macroRenderQuick();
   macroRenderVariable();
+  macroRenderOneOffs();
   macroRenderCompliance();
 }
 
@@ -2489,6 +2523,52 @@ function macroToggleVar(catalogId, cb) {
   } else {
     macroRemoveEntries(macroCurrentDate, catalogId);
   }
+  macroSaveLog();
+  macroRender();
+}
+
+// ── One-off items (logged to this day only, no catalog entry) ──
+function macroRenderOneOffs() {
+  const entries = macroDayEntries(macroCurrentDate).filter(e => e.oneOff);
+  const section = document.getElementById('mac-oneoff-section');
+  const el = document.getElementById('mac-oneoff-body');
+  if (!entries.length) { section.style.display = 'none'; el.innerHTML = ''; return; }
+  section.style.display = '';
+  el.innerHTML = entries.map(e => `<div class="mac-row mac-cols-quick logged">
+    <span class="mac-dot ok" style="margin:0 3px"></span>
+    <span class="mac-name">${macroEsc(e.name)}</span>
+    <span class="mac-num">${Math.round(e.protein*10)/10}g</span>
+    <span class="mac-num">${macroFmtNum(e.cals)}</span>
+    <button class="mac-row-edit" title="Remove" onclick="macroRemoveOneOff('${e.id}')">&times;</button>
+  </div>`).join('');
+}
+
+function macroOpenOneOff() {
+  ['mac-oneoff-name','mac-oneoff-cals','mac-oneoff-pro'].forEach(id => { document.getElementById(id).value = ''; });
+  document.getElementById('mac-oneoff-overlay').style.display = 'flex';
+  document.getElementById('mac-oneoff-name').focus();
+}
+function macroCloseOneOff() {
+  document.getElementById('mac-oneoff-overlay').style.display = 'none';
+}
+function macroSaveOneOff() {
+  const name = document.getElementById('mac-oneoff-name').value.trim();
+  const cals = parseFloat(document.getElementById('mac-oneoff-cals').value);
+  const pro = parseFloat(document.getElementById('mac-oneoff-pro').value);
+  if (!name) { showToast('Enter a name'); return; }
+  if (isNaN(cals) || isNaN(pro)) { showToast('Fill in calories and protein'); return; }
+  macroAddEntry(macroCurrentDate, {
+    id: 'mo-' + Date.now(), catalogId: null, oneOff: true, name,
+    qtyLabel: 'one-off', cals: Math.round(cals), protein: Math.round(pro*10)/10,
+    time: new Date().toTimeString().slice(0,5),
+  });
+  macroSaveLog();
+  macroCloseOneOff();
+  macroRender();
+  showToast(`${name} logged`);
+}
+function macroRemoveOneOff(entryId) {
+  macroRemoveEntryById(macroCurrentDate, entryId);
   macroSaveLog();
   macroRender();
 }

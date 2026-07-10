@@ -1432,6 +1432,77 @@ test.describe('Macros — data integrity', () => {
     await expect(page.locator('#mac-quick-body input[type="checkbox"]')).toBeChecked();
   });
 
+  test('one-off item logs to the day with oneOff flag, null catalogId, and counts toward totals', async ({ page }) => {
+    await seedCatalogAndOpen(page, []);
+
+    await page.click('button[onclick="macroOpenOneOff()"]');
+    await page.fill('#mac-oneoff-name', 'Cafe banana bread');
+    await page.fill('#mac-oneoff-cals', '480');
+    await page.fill('#mac-oneoff-pro', '12');
+    await page.click('button[onclick="macroSaveOneOff()"]');
+
+    const appToday = await page.evaluate(() => (window as any).today());
+    const raw = await page.evaluate(() => localStorage.getItem('macros_log_v1'));
+    const day = JSON.parse(raw!)[appToday];
+    expect(day.entries).toHaveLength(1);
+
+    const e = day.entries[0];
+    expect(e.oneOff).toBe(true);
+    expect(e.catalogId).toBeNull();
+    expect(e.name).toBe('Cafe banana bread');
+    expect(e.cals).toBe(480);
+    expect(e.protein).toBe(12);
+
+    // No catalog item was created
+    const cat = JSON.parse(await page.evaluate(() => localStorage.getItem('macros_catalog_v1')) as string);
+    expect(cat).toHaveLength(0);
+
+    // Snapshot present (first entry of the day)
+    expect(day.targets).toBeTruthy();
+  });
+
+  test('removing a one-off deletes it and clears the empty day key', async ({ page }) => {
+    await seedCatalogAndOpen(page, []);
+
+    await page.click('button[onclick="macroOpenOneOff()"]');
+    await page.fill('#mac-oneoff-name', 'Takeaway pad thai');
+    await page.fill('#mac-oneoff-cals', '900');
+    await page.fill('#mac-oneoff-pro', '30');
+    await page.click('button[onclick="macroSaveOneOff()"]');
+
+    const appToday = await page.evaluate(() => (window as any).today());
+    let raw = await page.evaluate(() => localStorage.getItem('macros_log_v1'));
+    expect(JSON.parse(raw!)).toHaveProperty(appToday);
+
+    await page.click('#mac-oneoff-body .mac-row-edit', { force: true });
+
+    raw = await page.evaluate(() => localStorage.getItem('macros_log_v1'));
+    expect(JSON.parse(raw!)).not.toHaveProperty(appToday);
+  });
+
+  test('one-off item survives reload', async ({ page }) => {
+    await seedCatalogAndOpen(page, []);
+
+    await page.click('button[onclick="macroOpenOneOff()"]');
+    await page.fill('#mac-oneoff-name', 'Airport sandwich');
+    await page.fill('#mac-oneoff-cals', '550');
+    await page.fill('#mac-oneoff-pro', '25');
+    await page.click('button[onclick="macroSaveOneOff()"]');
+
+    const before = JSON.parse(await page.evaluate(() => localStorage.getItem('macros_log_v1')) as string);
+
+    await page.reload();
+    await page.waitForLoadState('networkidle');
+    await page.click('#nav-macros');
+    await page.waitForTimeout(300);
+
+    const after = JSON.parse(await page.evaluate(() => localStorage.getItem('macros_log_v1')) as string);
+    expect(after).toEqual(before);
+
+    // Renders in the one-off list
+    await expect(page.locator('#mac-oneoff-body .mac-name')).toHaveText('Airport sandwich');
+  });
+
 });
 
 // ─────────────────────────────────────────────
