@@ -419,7 +419,7 @@
   </button>
   <div style="margin-left:auto;display:flex;align-items:center;gap:12px;">
     <span id="drive-status" class="drive-status"></span>
-    <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text)">v3.7</span>
+    <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text)">v3.8</span>
   </div>
 </nav>
 
@@ -2026,23 +2026,31 @@ function bsRenderChart() {
   const chronological = [...bsEntries].sort((a, b) => new Date(a.date) - new Date(b.date));
   const allDates = [...new Set(chronological.map(e => e.date))];
 
-  const CALIPER_KEYS = ['chestPinch', 'stomachPinch', 'legPinch'];
-  const soloMetrics = BS_METRICS.filter(m => !CALIPER_KEYS.includes(m.key) && bsActiveMetrics.has(m.key));
-  const caliperMetrics = BS_METRICS.filter(m => CALIPER_KEYS.includes(m.key) && bsActiveMetrics.has(m.key));
-  const showCaliperCard = caliperMetrics.length > 0;
+  // Metrics that share a card. Everything else renders as its own solo card.
+  const BS_GROUPS = [
+    { id: 'composition', title: 'Weight & lean mass', keys: ['weight', 'leanMass'], unit: 'kg', trim: '' },
+    { id: 'caliper', title: 'Caliper pinches', keys: ['chestPinch', 'stomachPinch', 'legPinch'], unit: 'mm', trim: ' pinch' },
+  ];
+  const groupedKeys = new Set(BS_GROUPS.flatMap(g => g.keys));
 
-  if (!soloMetrics.length && !showCaliperCard || chronological.length === 0) {
+  const soloMetrics = BS_METRICS.filter(m => !groupedKeys.has(m.key) && bsActiveMetrics.has(m.key));
+  const activeGroups = BS_GROUPS
+    .map(g => ({ ...g, metrics: BS_METRICS.filter(m => g.keys.includes(m.key) && bsActiveMetrics.has(m.key)) }))
+    .filter(g => g.metrics.length > 0);
+
+  if (!soloMetrics.length && !activeGroups.length || chronological.length === 0) {
     grid.innerHTML = '';
     return;
   }
 
   const fmtShort = dateStr => new Date(dateStr + 'T00:00:00').toLocaleDateString('en-AU', { month: 'short', day: 'numeric' });
+  const valsFor = key => allDates.map(date => {
+    const e = chronological.find(en => en.date === date);
+    return (e && e[key] !== undefined && e[key] !== '') ? Number(e[key]) : null;
+  });
 
   const soloCardHtml = soloMetrics.map(m => {
-    const vals = allDates.map(date => {
-      const e = chronological.find(en => en.date === date);
-      return (e && e[m.key] !== undefined && e[m.key] !== '') ? Number(e[m.key]) : null;
-    });
+    const vals = valsFor(m.key);
     const defined = vals.filter(v => v !== null);
     const latest = defined[defined.length - 1];
     const first = defined[0];
@@ -2066,53 +2074,52 @@ function bsRenderChart() {
     </div>`;
   }).join('');
 
-  const caliperCardHtml = showCaliperCard ? (() => {
-    const legendDots = caliperMetrics.map(m => {
-      const vals = allDates.map(date => { const e = chronological.find(en => en.date === date); return (e && e[m.key] !== undefined) ? Number(e[m.key]) : null; }).filter(v => v !== null);
+  const groupCardHtml = activeGroups.map(g => {
+    const legendDots = g.metrics.map(m => {
+      const vals = valsFor(m.key).filter(v => v !== null);
       const latest = vals[vals.length - 1];
       return `<span style="display:inline-flex;align-items:center;gap:4px;font-size:10px;color:var(--muted);">
         <span style="width:6px;height:6px;border-radius:50%;background:${m.color};display:inline-block;"></span>
-        ${m.label.replace(' pinch', '')} ${latest !== undefined ? latest.toFixed(1) + 'mm' : '—'}
+        ${m.label.replace(g.trim, '')} ${latest !== undefined ? latest.toFixed(1) + g.unit : '—'}
       </span>`;
     }).join('');
     return `<div class="bs-mini-card">
       <div class="bs-mini-head">
-        <div class="bs-mini-label">Caliper pinches</div>
+        <div class="bs-mini-label">${g.title}</div>
         <div style="display:flex;gap:10px;flex-wrap:wrap;">${legendDots}</div>
       </div>
-      <div style="position:relative;height:80px;margin-top:10px;"><canvas id="bs-mini-caliper"></canvas></div>
+      <div style="position:relative;height:80px;margin-top:10px;"><canvas id="bs-mini-${g.id}"></canvas></div>
     </div>`;
-  })() : '';
+  }).join('');
 
   grid.className = 'bs-charts-grid';
-  grid.innerHTML = soloCardHtml + caliperCardHtml;
+  grid.innerHTML = soloCardHtml + groupCardHtml;
+
+  const lineDataset = (m) => {
+    const vals = valsFor(m.key);
+    return {
+      label: m.label,
+      data: vals,
+      borderColor: m.color,
+      backgroundColor: m.color,
+      pointBackgroundColor: vals.map((_, i) => i === vals.length - 1 ? m.color : m.color + '70'),
+      pointBorderColor: '#F7F5F2',
+      pointBorderWidth: 2,
+      pointRadius: vals.map((_, i) => i === vals.length - 1 ? 6 : 3),
+      borderWidth: 2,
+      tension: 0.3,
+      fill: false,
+      spanGaps: false,
+    };
+  };
 
   // Solo metric charts
   soloMetrics.forEach(m => {
     const canvas = document.getElementById('bs-mini-' + m.key);
     if (!canvas) return;
-    const vals = allDates.map(date => {
-      const e = chronological.find(en => en.date === date);
-      return (e && e[m.key] !== undefined && e[m.key] !== '') ? Number(e[m.key]) : null;
-    });
     bsCharts[m.key] = new Chart(canvas.getContext('2d'), {
       type: 'line',
-      data: {
-        labels: allDates,
-        datasets: [{
-          data: vals,
-          borderColor: m.color,
-          backgroundColor: m.color,
-          pointBackgroundColor: vals.map((_, i) => i === vals.length - 1 ? m.color : m.color + '70'),
-          pointBorderColor: '#F7F5F2',
-          pointBorderWidth: 2,
-          pointRadius: vals.map((_, i) => i === vals.length - 1 ? 6 : 3),
-          borderWidth: 2,
-          tension: 0.3,
-          fill: false,
-          spanGaps: false,
-        }]
-      },
+      data: { labels: allDates, datasets: [lineDataset(m)] },
       options: {
         responsive: true,
         maintainAspectRatio: false,
@@ -2128,51 +2135,28 @@ function bsRenderChart() {
     });
   });
 
-  // Combined caliper chart
-  if (showCaliperCard) {
-    const canvas = document.getElementById('bs-mini-caliper');
-    if (canvas) {
-      bsCharts['caliper'] = new Chart(canvas.getContext('2d'), {
-        type: 'line',
-        data: {
-          labels: allDates,
-          datasets: caliperMetrics.map(m => {
-            const vals = allDates.map(date => {
-              const e = chronological.find(en => en.date === date);
-              return (e && e[m.key] !== undefined && e[m.key] !== '') ? Number(e[m.key]) : null;
-            });
-            return {
-              label: m.label,
-              data: vals,
-              borderColor: m.color,
-              backgroundColor: m.color,
-              pointBackgroundColor: vals.map((_, i) => i === vals.length - 1 ? m.color : m.color + '70'),
-              pointBorderColor: '#F7F5F2',
-              pointBorderWidth: 2,
-              pointRadius: vals.map((_, i) => i === vals.length - 1 ? 6 : 3),
-              borderWidth: 2,
-              tension: 0.3,
-              fill: false,
-              spanGaps: false,
-            };
-          })
+  // Combined group charts
+  activeGroups.forEach(g => {
+    const canvas = document.getElementById('bs-mini-' + g.id);
+    if (!canvas) return;
+    bsCharts[g.id] = new Chart(canvas.getContext('2d'), {
+      type: 'line',
+      data: { labels: allDates, datasets: g.metrics.map(lineDataset) },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { title: items => fmtShort(items[0].label), label: item => item.parsed.y !== null ? ` ${item.dataset.label.replace(g.trim, '')}: ${item.parsed.y.toFixed(1)}${g.unit}` : '' } }
         },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          interaction: { mode: 'index', intersect: false },
-          plugins: {
-            legend: { display: false },
-            tooltip: { callbacks: { title: items => fmtShort(items[0].label), label: item => item.parsed.y !== null ? ` ${item.dataset.label.replace(' pinch','')}: ${item.parsed.y.toFixed(1)}mm` : '' } }
-          },
-          scales: {
-            x: { display: false },
-            y: { grid: { color: '#E8E4DE' }, border: { dash: [3, 3] }, ticks: { font: { family: 'DM Mono', size: 9 }, color: '#9A9088', maxTicksLimit: 3, callback: v => v + 'mm' } }
-          }
+        scales: {
+          x: { display: false },
+          y: { grid: { color: '#E8E4DE' }, border: { dash: [3, 3] }, ticks: { font: { family: 'DM Mono', size: 9 }, color: '#9A9088', maxTicksLimit: 3, callback: v => v + g.unit } }
         }
-      });
-    }
-  }
+      }
+    });
+  });
 }
 
 function bsRenderList() {
