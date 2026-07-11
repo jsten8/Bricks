@@ -264,6 +264,9 @@
   .chore-last-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); }
   .chore-last-value { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--text); margin-top: 2px; }
   .chore-interval { font-size: 12px; color: var(--muted); white-space: nowrap; min-width: 60px; text-align: right; }
+  .chore-status { display: inline-block; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; padding: 2px 8px; border-radius: 20px; vertical-align: middle; margin-left: 4px; }
+  .chore-status.ok { background: #E6EDD9; color: var(--green); }
+  .chore-status.due { background: #F5E7C4; color: #8A6D0F; }
   .btn-log-now { border: 1px solid var(--border); background: var(--bg); padding: 6px 12px; border-radius: 8px; font-size: 12px; color: var(--text); cursor: pointer; flex-shrink: 0; font-family: 'DM Sans', sans-serif; transition: all 0.15s; }
   .btn-log-now:hover { background: var(--text); color: white; border-color: var(--text); }
   .add-task-panel { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin-top: 8px; }
@@ -419,7 +422,7 @@
   </button>
   <div style="margin-left:auto;display:flex;align-items:center;gap:12px;">
     <span id="drive-status" class="drive-status"></span>
-    <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text)">v3.8</span>
+    <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text)">v3.9</span>
   </div>
 </nav>
 
@@ -795,8 +798,9 @@
       <span id="chore-add-toggle-label">+ Add task</span>
     </button>
     <div class="add-task-panel" id="chore-add-panel" style="display:none">
-      <div class="add-task-grid" style="grid-template-columns:1.5fr 1fr;">
+      <div class="add-task-grid" style="grid-template-columns:1.5fr 1fr 1fr;">
         <div class="field"><label>Task name</label><input type="text" id="chore-new-name" placeholder="e.g. Wash dog bed" maxlength="60"></div>
+        <div class="field"><label>Clean every (days) <span style="opacity:0.5;font-size:11px">optional</span></label><input type="number" id="chore-new-interval" min="1" max="365" placeholder="e.g. 14"></div>
         <div class="field">
           <label>Color</label>
           <select id="chore-new-color">
@@ -1819,33 +1823,34 @@ function choreInit() {
 }
 
 function choreRender() {
-  // Sort: oldest lastDone first
-  const sorted = [...chores].sort((a, b) => new Date(a.lastDone) - new Date(b.lastDone));
-
-  const fmtShort = dateStr => {
-    const d = new Date(dateStr + 'T00:00:00');
-    return d.toLocaleDateString('en-AU', { month: 'short', day: 'numeric' });
-  };
-  const fmtAgo = dateStr => {
-    const diff = Math.floor((Date.now() - new Date(dateStr + 'T00:00:00')) / 86400000);
-    if (diff <= 0) return 'today';
-    if (diff === 1) return '1 day ago';
-    return diff + ' days ago';
-  };
   const esc = s => (s||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+
+  const withMeta = chores.map(c => {
+    const daysSince = Math.floor((Date.now() - new Date(c.lastDone + 'T00:00:00')) / 86400000);
+    const hasInterval = typeof c.intervalDays === 'number' && c.intervalDays > 0;
+    const due = hasInterval && daysSince >= c.intervalDays;
+    return { c, daysSince, hasInterval, due };
+  });
+  // Float "time to clean" tasks to the top, then oldest-cleaned first
+  withMeta.sort((a, b) => {
+    if (a.due !== b.due) return a.due ? -1 : 1;
+    return new Date(a.c.lastDone) - new Date(b.c.lastDone);
+  });
 
   const listEl = document.getElementById('chore-list');
   if (!chores.length) {
     listEl.innerHTML = '<div class="empty-state">No tasks yet. Add one below.</div>';
   } else {
-    listEl.innerHTML = sorted.map(c => {
-      const daysSince = Math.floor((Date.now() - new Date(c.lastDone + 'T00:00:00')) / 86400000);
+    listEl.innerHTML = withMeta.map(({ c, daysSince, hasInterval, due }) => {
       const daysSinceStr = daysSince <= 0 ? 'today' : daysSince === 1 ? '1 day' : daysSince + ' days';
+      const pill = !hasInterval ? '' : due
+        ? `<span class="chore-status due">Time to clean</span>`
+        : `<span class="chore-status ok">Clean</span>`;
       return `
       <div class="chore-row" style="flex-wrap:wrap;">
         <div class="chore-dot" style="background:${CHORE_DOT_COLORS[c.color]||'#999'}"></div>
         <div class="chore-main">
-          <div class="chore-name">${esc(c.name)}</div>
+          <div class="chore-name">${esc(c.name)} ${pill}</div>
         </div>
         <div class="chore-meta">
           <div class="chore-last-col">
@@ -1856,6 +1861,14 @@ function choreRender() {
           <div class="chore-last-col" style="min-width:80px;">
             <div class="chore-last-label">Days since</div>
             <div class="chore-last-value">${daysSinceStr}</div>
+          </div>
+          <div class="chore-last-col" style="min-width:70px;">
+            <div class="chore-last-label">Clean every</div>
+            <div style="display:flex;align-items:baseline;gap:3px;">
+              <input type="number" min="1" max="365" value="${hasInterval ? c.intervalDays : ''}" placeholder="—" onchange="choreSetInterval('${c.id}', this.value)"
+                style="width:44px;font-family:'DM Mono',monospace;font-size:12px;border:1px solid var(--border);border-radius:6px;padding:4px 6px;background:var(--bg);color:var(--text);outline:none;text-align:right;">
+              <span style="font-size:11px;color:var(--muted);">d</span>
+            </div>
           </div>
           <button class="btn-log-now" onclick="choreToggleNote('${c.id}')" id="chore-note-btn-${c.id}" style="background:${c.note ? 'var(--accent)' : ''};color:${c.note ? 'white' : ''};border-color:${c.note ? 'var(--accent)' : ''};">✎ Notes</button>
           <button class="btn-log-now" onclick="choreLogNow('${c.id}')">Log now</button>
@@ -1902,6 +1915,16 @@ function choreSetDate(id, date) {
   choreRender();
 }
 
+function choreSetInterval(id, val) {
+  const c = chores.find(x => x.id === id);
+  if (!c) return;
+  const n = parseInt(val, 10);
+  if (isNaN(n) || n < 1) delete c.intervalDays;
+  else c.intervalDays = n;
+  choreSaveData();
+  choreRender();
+}
+
 function choreLogNow(id) {
   const c = chores.find(x => x.id === id);
   if (!c) return;
@@ -1934,12 +1957,16 @@ function choreToggleAdd() {
 function choreAddTask() {
   const name = document.getElementById('chore-new-name').value.trim();
   const color = document.getElementById('chore-new-color').value;
+  const intervalRaw = parseInt(document.getElementById('chore-new-interval').value, 10);
   if (!name) { showToast('Enter a task name'); return; }
   if (chores.some(c => c.name.toLowerCase() === name.toLowerCase())) { showToast('Task already exists'); return; }
   const id = 'c-' + Date.now();
-  chores.push({ id, name, color, lastDone: today(), note: '' });
+  const task = { id, name, color, lastDone: today(), note: '' };
+  if (!isNaN(intervalRaw) && intervalRaw >= 1) task.intervalDays = intervalRaw;
+  chores.push(task);
   choreSaveData();
   document.getElementById('chore-new-name').value = '';
+  document.getElementById('chore-new-interval').value = '';
   choreToggleAdd();
   choreRender();
   showToast(`"${name}" added`);

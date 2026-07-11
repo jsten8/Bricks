@@ -1054,6 +1054,74 @@ test.describe('Chores — data integrity', () => {
     expect(loaded[1]).toEqual(seed[1]);
   });
 
+  test('setting the interval input persists intervalDays; clearing it removes the field', async ({ page }) => {
+    await openFresh(page);
+
+    const seed = [{ id: 'c-int', name: 'Descale kettle', color: 'sky', lastDone: '2026-06-01', note: '' }];
+    await page.evaluate((data) => { localStorage.setItem('chores_v1', JSON.stringify(data)); }, seed);
+    await page.reload();
+    await page.waitForLoadState('networkidle');
+    await page.click('#nav-chores');
+    await page.waitForTimeout(300);
+
+    // Set interval
+    await page.locator('.chore-row input[type="number"]').fill('14');
+    await page.locator('.chore-row input[type="number"]').blur();
+    let chores = JSON.parse(await page.evaluate(() => localStorage.getItem('chores_v1')) as string);
+    expect(chores[0].intervalDays).toBe(14);
+
+    // Clear interval → field removed entirely
+    await page.locator('.chore-row input[type="number"]').fill('');
+    await page.locator('.chore-row input[type="number"]').blur();
+    chores = JSON.parse(await page.evaluate(() => localStorage.getItem('chores_v1')) as string);
+    expect(chores[0]).not.toHaveProperty('intervalDays');
+  });
+
+  test('status label reflects due state and due tasks float to the top', async ({ page }) => {
+    await openFresh(page);
+
+    const appToday = await page.evaluate(() => (window as any).today());
+    const daysAgo = (n: number) => {
+      const d = new Date(appToday + 'T00:00:00');
+      d.setDate(d.getDate() - n);
+      return d.toISOString().split('T')[0];
+    };
+
+    // Task A: cleaned today, 14-day interval → not due (Clean). Seeded first.
+    // Task B: cleaned 20 days ago, 7-day interval → due (Time to clean). Seeded second.
+    const seed = [
+      { id: 'c-a', name: 'Fresh task', color: 'mint', lastDone: appToday, note: '', intervalDays: 14 },
+      { id: 'c-b', name: 'Overdue task', color: 'rose', lastDone: daysAgo(20), note: '', intervalDays: 7 },
+    ];
+    await page.evaluate((data) => { localStorage.setItem('chores_v1', JSON.stringify(data)); }, seed);
+    await page.reload();
+    await page.waitForLoadState('networkidle');
+    await page.click('#nav-chores');
+    await page.waitForTimeout(300);
+
+    // Due task rendered first despite being seeded second
+    const names = await page.locator('.chore-row .chore-name').allInnerTexts();
+    expect(names[0]).toContain('Overdue task');
+    expect(names[1]).toContain('Fresh task');
+
+    // Correct pills
+    await expect(page.locator('.chore-row', { hasText: 'Overdue task' }).locator('.chore-status.due')).toHaveText('Time to clean');
+    await expect(page.locator('.chore-row', { hasText: 'Fresh task' }).locator('.chore-status.ok')).toHaveText('Clean');
+  });
+
+  test('task with no interval shows no status pill', async ({ page }) => {
+    await openFresh(page);
+
+    const seed = [{ id: 'c-noint', name: 'Whenever task', color: 'peach', lastDone: '2026-01-01', note: '' }];
+    await page.evaluate((data) => { localStorage.setItem('chores_v1', JSON.stringify(data)); }, seed);
+    await page.reload();
+    await page.waitForLoadState('networkidle');
+    await page.click('#nav-chores');
+    await page.waitForTimeout(300);
+
+    await expect(page.locator('.chore-row .chore-status')).toHaveCount(0);
+  });
+
 });
 
 // ─────────────────────────────────────────────
