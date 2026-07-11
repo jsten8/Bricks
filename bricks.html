@@ -312,6 +312,9 @@
   .bs-jc-metric { min-width: 84px; }
   .bs-jc-mlabel { font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin-bottom: 4px; }
   .bs-jc-mval { font-family: 'DM Mono', monospace; font-size: 20px; font-weight: 500; }
+  .bs-jc-mval.gold { color: #B8860B; }
+  .bs-jc-medals { display: flex; flex-wrap: wrap; gap: 8px; padding: 2px 22px 16px; }
+  .bs-medal { display: inline-flex; align-items: center; gap: 5px; font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: 0.02em; padding: 4px 11px; border-radius: 20px; background: linear-gradient(135deg, #F8EAB8, #E7C766); border: 1px solid #D4AF37; color: #6B531A; }
   .bs-jc-mdelta { font-family: 'DM Mono', monospace; font-size: 11px; margin-top: 2px; color: var(--muted); }
   .bs-jc-mdelta.up { color: var(--green); }
   .bs-jc-mdelta.down { color: var(--red); }
@@ -448,7 +451,7 @@
   </button>
   <div style="margin-left:auto;display:flex;align-items:center;gap:12px;">
     <span id="drive-status" class="drive-status"></span>
-    <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text)">v4.4</span>
+    <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text)">v4.5</span>
   </div>
 </nav>
 
@@ -1301,7 +1304,8 @@ function exportData() {
   try { const r=localStorage.getItem('macros_targets_v1'); if(r) macTgtExport=JSON.parse(r); } catch {}
   try { const r=localStorage.getItem('macros_catalog_v1'); if(r) macCatExport=JSON.parse(r); } catch {}
   try { const r=localStorage.getItem('macros_log_v1'); if(r) macLogExport=JSON.parse(r); } catch {}
-  const payload={exported:new Date().toISOString(),entries,projects:PROJECTS,nwCheckins,nwCalcs,chores:choresExport,bodyStats:bsExport,macroTargets:macTgtExport,macroCatalog:macCatExport,macroLog:macLogExport};
+  const bsBaselineExport = localStorage.getItem('bodystats_records_baseline_v1');
+  const payload={exported:new Date().toISOString(),entries,projects:PROJECTS,nwCheckins,nwCalcs,chores:choresExport,bodyStats:bsExport,bsRecordsBaseline:bsBaselineExport,macroTargets:macTgtExport,macroCatalog:macCatExport,macroLog:macLogExport};
   const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a'); a.href=url; a.download=`jake-suite-backup-${today()}.json`; a.click();
@@ -1366,7 +1370,8 @@ function buildPayload() {
   try { const r=localStorage.getItem('macros_targets_v1'); if(r) macTgt=JSON.parse(r); } catch {}
   try { const r=localStorage.getItem('macros_catalog_v1'); if(r) macCat=JSON.parse(r); } catch {}
   try { const r=localStorage.getItem('macros_log_v1'); if(r) macLg=JSON.parse(r); } catch {}
-  return JSON.stringify({exported:new Date().toISOString(),entries,projects:PROJECTS,nwCheckins:nwChk,nwCalcs:nwClc,chores:choresData,bodyStats:bsData,macroTargets:macTgt,macroCatalog:macCat,macroLog:macLg},null,2);
+  const bsBaseline = localStorage.getItem('bodystats_records_baseline_v1');
+  return JSON.stringify({exported:new Date().toISOString(),entries,projects:PROJECTS,nwCheckins:nwChk,nwCalcs:nwClc,chores:choresData,bodyStats:bsData,bsRecordsBaseline:bsBaseline,macroTargets:macTgt,macroCatalog:macCat,macroLog:macLg},null,2);
 }
 async function syncToDrive() {
   if(!driveFileId||isSyncing)return; isSyncing=true; setDriveStatus('syncing','Saving...');
@@ -2028,6 +2033,56 @@ const BS_METRICS = [
 // For deltas: lean mass is the only metric where an increase is good; everything
 // else (body fat, weight, all caliper pinches) is better when it goes down.
 const BS_HIGHER_BETTER = new Set(['leanMass']);
+
+// Record pills: a check-in earns a medal on a metric when its value beats every
+// earlier check-in (ties don't count). Computed on the fly, never stored.
+const BS_MEDALS = {
+  bodyFat:      'Leanest ever',
+  leanMass:     'Most muscular ever',
+  chestPinch:   'Leanest chest pinch',
+  stomachPinch: 'Leanest stomach pinch',
+  legPinch:     'Leanest leg pinch',
+};
+const BS_BASELINE_KEY = 'bodystats_records_baseline_v1';
+
+// One-time baseline: the latest check-in that existed when this feature shipped.
+// Check-ins dated before it never earn pills, so past history doesn't light up.
+function bsRecordsBaseline() {
+  let b = localStorage.getItem(BS_BASELINE_KEY);
+  if (b === null) {
+    const dates = bsEntries.map(e => e.date).filter(Boolean).sort();
+    b = dates.length ? dates[dates.length - 1] : '';
+    localStorage.setItem(BS_BASELINE_KEY, b);
+    if (typeof driveFileId !== 'undefined' && driveFileId) syncToDrive();
+  }
+  return b;
+}
+
+// Returns { entryId: [metricKey, ...] } for every check-in that holds a record.
+function bsComputeMedals() {
+  const baseline = bsRecordsBaseline();
+  const chrono = [...bsEntries].sort((a, b) => new Date(a.date) - new Date(b.date));
+  const medals = {};
+  chrono.forEach(e => {
+    if (baseline && e.date < baseline) return; // pre-baseline history stays quiet
+    const earned = [];
+    Object.keys(BS_MEDALS).forEach(key => {
+      if (e[key] === undefined || e[key] === '') return;
+      const v = Number(e[key]);
+      const higher = BS_HIGHER_BETTER.has(key);
+      let isRecord = true;
+      for (const other of chrono) {
+        if (other === e || new Date(other.date) >= new Date(e.date)) continue; // earlier only
+        if (other[key] === undefined || other[key] === '') continue;
+        const o = Number(other[key]);
+        if (higher ? o >= v : o <= v) { isRecord = false; break; } // tie or better → not a new record
+      }
+      if (isRecord) earned.push(key);
+    });
+    if (earned.length) medals[e.id] = earned;
+  });
+  return medals;
+}
 // Returns 'up' (green/good), 'down' (red/bad), or 'flat' — coloured by whether the change is desirable, not its raw sign.
 function bsDeltaClass(key, delta) {
   if (!delta) return 'flat';
@@ -2261,8 +2316,11 @@ function bsRenderList() {
     return;
   }
 
+  const medals = bsComputeMedals();
+
   el.innerHTML = sorted.map((e, i) => {
     const prev = sorted[i + 1]; // older check-in
+    const earned = medals[e.id] || [];
 
     // Metrics strip with deltas vs previous
     const metrics = BS_METRICS.filter(m => e[m.key] !== undefined && e[m.key] !== '').map(m => {
@@ -2275,10 +2333,14 @@ function bsRenderList() {
       }
       return `<div class="bs-jc-metric">
         <div class="bs-jc-mlabel">${m.label}</div>
-        <div class="bs-jc-mval">${val.toFixed(m.decimals)}${m.unit}</div>
+        <div class="bs-jc-mval${earned.includes(m.key) ? ' gold' : ''}">${val.toFixed(m.decimals)}${m.unit}</div>
         ${deltaHtml}
       </div>`;
     }).join('');
+
+    const medalsHtml = earned.length
+      ? `<div class="bs-jc-medals">${earned.map(k => `<span class="bs-medal">🏆 ${BS_MEDALS[k]}</span>`).join('')}</div>`
+      : '';
 
     // Goal-met badge judges the PREVIOUS check-in's goal
     const prevGoal = prev && prev.goalNext ? prev.goalNext.trim() : '';
@@ -2303,6 +2365,7 @@ function bsRenderList() {
           <button class="btn-log-now" onclick="bsStartEdit('${e.id}')">Edit</button>
         </div>
       </div>
+      ${medalsHtml}
       <div class="bs-jc-metrics">${metrics}</div>
       <div class="bs-jc-cols">
         <div class="bs-jc-col">

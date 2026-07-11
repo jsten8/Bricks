@@ -14,6 +14,7 @@ async function openFresh(page: Page) {
     localStorage.removeItem('nw_calcs_v1');
     localStorage.removeItem('chores_v1');
     localStorage.removeItem('bodystats_v1');
+    localStorage.removeItem('bodystats_records_baseline_v1');
     localStorage.removeItem('macros_targets_v1');
     localStorage.removeItem('macros_catalog_v1');
     localStorage.removeItem('macros_log_v1');
@@ -1362,6 +1363,70 @@ test.describe('Body Stats — data integrity', () => {
     await expect(deltas.nth(0)).toHaveClass(/up/);   // body fat -2.0% → good
     await expect(deltas.nth(1)).toHaveClass(/up/);   // weight -1.0kg → good
     await expect(deltas.nth(2)).toHaveClass(/down/); // lean mass -1.0kg → bad
+  });
+
+  test('medals: baseline suppresses pre-baseline history; latest holds current records', async ({ page }) => {
+    await openFresh(page);
+    // No baseline stored yet → auto-initialises to the latest existing check-in (June)
+    const seed = [
+      { id: 'bs-may', date: '2026-05-16', bodyFat: 20.1, leanMass: 71.1, chestPinch: 14, stomachPinch: 33, legPinch: 14 },
+      { id: 'bs-jun', date: '2026-06-20', bodyFat: 18.1, leanMass: 77.2, chestPinch: 12.3, stomachPinch: 29, legPinch: 11.8 },
+    ];
+    await page.evaluate((d) => { localStorage.setItem('bodystats_v1', JSON.stringify(d)); }, seed);
+    await page.reload();
+    await page.waitForLoadState('networkidle');
+    await page.click('#nav-bodystats');
+    await page.waitForTimeout(300);
+
+    // Baseline auto-set to June
+    expect(await page.evaluate(() => localStorage.getItem('bodystats_records_baseline_v1'))).toBe('2026-06-20');
+
+    // June (newest, first card) holds all 5 records
+    const juneCard = page.locator('.bs-jc-card').nth(0);
+    await expect(juneCard.locator('.bs-medal')).toHaveCount(5);
+    // May (older, second card) is pre-baseline → no medals row
+    const mayCard = page.locator('.bs-jc-card').nth(1);
+    await expect(mayCard.locator('.bs-medal')).toHaveCount(0);
+
+    // Nothing stored per entry — medals are computed
+    const stored = JSON.parse(await page.evaluate(() => localStorage.getItem('bodystats_v1')) as string);
+    expect(stored[0]).not.toHaveProperty('medals');
+  });
+
+  test('medals: a later check-in earns a record without stripping the earlier holder; ties do not earn', async ({ page }) => {
+    await openFresh(page);
+    // Baseline fixed at June; July beats June on body fat, ties June on lean mass
+    await page.evaluate(() => localStorage.setItem('bodystats_records_baseline_v1', '2026-06-20'));
+    const seed = [
+      { id: 'bs-may', date: '2026-05-16', bodyFat: 20.1, leanMass: 71.1 },
+      { id: 'bs-jun', date: '2026-06-20', bodyFat: 18.1, leanMass: 77.2 },
+      { id: 'bs-jul', date: '2026-07-18', bodyFat: 17.0, leanMass: 77.2 },
+    ];
+    await page.evaluate((d) => { localStorage.setItem('bodystats_v1', JSON.stringify(d)); }, seed);
+    await page.reload();
+    await page.waitForLoadState('networkidle');
+    await page.click('#nav-bodystats');
+    await page.waitForTimeout(300);
+
+    // July (first card): beats June on body fat → "Leanest ever"; ties lean mass → no "Most muscular"
+    const julyCard = page.locator('.bs-jc-card').nth(0);
+    await expect(julyCard.locator('.bs-medal', { hasText: 'Leanest ever' })).toHaveCount(1);
+    await expect(julyCard.locator('.bs-medal', { hasText: 'Most muscular ever' })).toHaveCount(0);
+
+    // June (second card) keeps BOTH its records — a later PR didn't strip them
+    const juneCard = page.locator('.bs-jc-card').nth(1);
+    await expect(juneCard.locator('.bs-medal', { hasText: 'Leanest ever' })).toHaveCount(1);
+    await expect(juneCard.locator('.bs-medal', { hasText: 'Most muscular ever' })).toHaveCount(1);
+
+    // The record-setting value gets the gold tint (July's body fat)
+    await expect(julyCard.locator('.bs-jc-mval.gold').first()).toBeVisible();
+  });
+
+  test('medals: buildPayload includes the records baseline', async ({ page }) => {
+    await openFresh(page);
+    await page.evaluate(() => localStorage.setItem('bodystats_records_baseline_v1', '2026-06-20'));
+    const payload = JSON.parse(await page.evaluate(() => (window as any).buildPayload()));
+    expect(payload.bsRecordsBaseline).toBe('2026-06-20');
   });
 
 });
