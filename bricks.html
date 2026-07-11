@@ -448,7 +448,7 @@
   </button>
   <div style="margin-left:auto;display:flex;align-items:center;gap:12px;">
     <span id="drive-status" class="drive-status"></span>
-    <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text)">v4.1</span>
+    <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text)">v4.2</span>
   </div>
 </nav>
 
@@ -2025,6 +2025,16 @@ const BS_METRICS = [
   { key: 'legPinch',     label: 'Leg pinch',      unit: 'mm', decimals: 1, color: '#c77f95' },
 ];
 
+// For deltas: lean mass is the only metric where an increase is good; everything
+// else (body fat, weight, all caliper pinches) is better when it goes down.
+const BS_HIGHER_BETTER = new Set(['leanMass']);
+// Returns 'up' (green/good), 'down' (red/bad), or 'flat' — coloured by whether the change is desirable, not its raw sign.
+function bsDeltaClass(key, delta) {
+  if (!delta) return 'flat';
+  const good = BS_HIGHER_BETTER.has(key) ? delta > 0 : delta < 0;
+  return good ? 'up' : 'down';
+}
+
 let bsEntries = [];
 let bsActiveMetrics = new Set(BS_METRICS.map(m => m.key));
 
@@ -2110,7 +2120,7 @@ function bsRenderChart() {
     const first = defined[0];
     const diff = (latest !== undefined && first !== undefined && defined.length > 1) ? latest - first : null;
     const pct = (diff !== null && first !== 0) ? (diff / Math.abs(first) * 100) : null;
-    const deltaClass = diff === null ? 'flat' : diff > 0 ? 'up' : diff < 0 ? 'down' : 'flat';
+    const deltaClass = diff === null ? 'flat' : bsDeltaClass(m.key, diff);
     const arrow = diff === null ? '' : diff > 0 ? '↑' : '↓';
     const deltaStr = diff !== null
       ? `${arrow} ${Math.abs(diff).toFixed(m.decimals)}${m.unit}${pct !== null ? ` (${pct >= 0 ? '+' : ''}${pct.toFixed(1)}%)` : ''}`
@@ -2234,7 +2244,7 @@ function bsRenderList() {
       let deltaHtml = '';
       if (prev && prev[m.key] !== undefined && prev[m.key] !== '') {
         const d = val - Number(prev[m.key]);
-        const cls = d > 0 ? 'up' : d < 0 ? 'down' : 'flat';
+        const cls = bsDeltaClass(m.key, d);
         deltaHtml = `<div class="bs-jc-mdelta ${cls}">${d >= 0 ? '+' : ''}${d.toFixed(1)}${m.unit}</div>`;
       }
       return `<div class="bs-jc-metric">

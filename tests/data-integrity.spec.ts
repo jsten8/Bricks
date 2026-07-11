@@ -1344,6 +1344,26 @@ test.describe('Body Stats — data integrity', () => {
     expect(entry.goalMet).toBe('met');
   });
 
+  test('journal: delta colours reflect good/bad direction, not raw sign', async ({ page }) => {
+    await openFresh(page);
+    // Newer entry: weight down (good→green/up), body fat down (good→up), lean mass down (bad→red/down)
+    const seed = [
+      { id: 'bs-p', date: '2026-05-16', weight: 89, bodyFat: 20, leanMass: 72 },
+      { id: 'bs-c', date: '2026-06-20', weight: 88, bodyFat: 18, leanMass: 71 },
+    ];
+    await page.evaluate((d) => { localStorage.setItem('bodystats_v1', JSON.stringify(d)); }, seed);
+    await page.reload();
+    await page.waitForLoadState('networkidle');
+    await page.click('#nav-bodystats');
+    await page.waitForTimeout(300);
+
+    // Newest card first; metric order is bodyFat, weight, leanMass
+    const deltas = page.locator('.bs-jc-card').nth(0).locator('.bs-jc-mdelta');
+    await expect(deltas.nth(0)).toHaveClass(/up/);   // body fat -2.0% → good
+    await expect(deltas.nth(1)).toHaveClass(/up/);   // weight -1.0kg → good
+    await expect(deltas.nth(2)).toHaveClass(/down/); // lean mass -1.0kg → bad
+  });
+
 });
 
 // ─────────────────────────────────────────────
