@@ -264,7 +264,8 @@
   .chore-last-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); }
   .chore-last-value { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--text); margin-top: 2px; }
   .chore-interval { font-size: 12px; color: var(--muted); white-space: nowrap; min-width: 60px; text-align: right; }
-  .chore-status { display: inline-block; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; padding: 2px 8px; border-radius: 20px; vertical-align: middle; margin-left: 4px; }
+  .chore-status-col { flex-shrink: 0; min-width: 104px; display: flex; align-items: center; }
+  .chore-status { display: inline-block; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; padding: 2px 8px; border-radius: 20px; }
   .chore-status.ok { background: #E6EDD9; color: var(--green); }
   .chore-status.due { background: #F5E7C4; color: #8A6D0F; }
   .btn-log-now { border: 1px solid var(--border); background: var(--bg); padding: 6px 12px; border-radius: 8px; font-size: 12px; color: var(--text); cursor: pointer; flex-shrink: 0; font-family: 'DM Sans', sans-serif; transition: all 0.15s; }
@@ -422,7 +423,7 @@
   </button>
   <div style="margin-left:auto;display:flex;align-items:center;gap:12px;">
     <span id="drive-status" class="drive-status"></span>
-    <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text)">v3.9</span>
+    <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text)">v4.0</span>
   </div>
 </nav>
 
@@ -1850,8 +1851,9 @@ function choreRender() {
       <div class="chore-row" style="flex-wrap:wrap;">
         <div class="chore-dot" style="background:${CHORE_DOT_COLORS[c.color]||'#999'}"></div>
         <div class="chore-main">
-          <div class="chore-name">${esc(c.name)} ${pill}</div>
+          <div class="chore-name">${esc(c.name)}</div>
         </div>
+        <div class="chore-status-col">${pill}</div>
         <div class="chore-meta">
           <div class="chore-last-col">
             <div class="chore-last-label">Last completed</div>
