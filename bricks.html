@@ -448,7 +448,7 @@
   </button>
   <div style="margin-left:auto;display:flex;align-items:center;gap:12px;">
     <span id="drive-status" class="drive-status"></span>
-    <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text)">v4.2</span>
+    <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text)">v4.3</span>
   </div>
 </nav>
 
@@ -2117,9 +2117,9 @@ function bsRenderChart() {
     const vals = valsFor(m.key);
     const defined = vals.filter(v => v !== null);
     const latest = defined[defined.length - 1];
-    const first = defined[0];
-    const diff = (latest !== undefined && first !== undefined && defined.length > 1) ? latest - first : null;
-    const pct = (diff !== null && first !== 0) ? (diff / Math.abs(first) * 100) : null;
+    const prev = defined[defined.length - 2]; // previous check-in, not the first ever
+    const diff = (latest !== undefined && prev !== undefined) ? latest - prev : null;
+    const pct = (diff !== null && prev !== 0) ? (diff / Math.abs(prev) * 100) : null;
     const deltaClass = diff === null ? 'flat' : bsDeltaClass(m.key, diff);
     const arrow = diff === null ? '' : diff > 0 ? '↑' : '↓';
     const deltaStr = diff !== null
