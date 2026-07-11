@@ -298,6 +298,31 @@
   .bs-entry-vals { flex: 1; display: flex; gap: 18px; flex-wrap: wrap; }
   .bs-entry-vals .lbl { color: var(--muted); margin-right: 2px; font-size: 11px; }
   .bs-section-tag { font-size: 11px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); margin: 16px 0 8px; }
+  /* Check-in journal cards */
+  .bs-jc-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; margin-bottom: 16px; overflow: hidden; }
+  .bs-jc-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 18px 22px; }
+  .bs-jc-date { font-family: 'DM Mono', monospace; font-size: 18px; font-weight: 500; letter-spacing: -0.3px; }
+  .bs-jc-head-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+  .bs-jc-badge-wrap { display: flex; gap: 4px; }
+  .bs-jc-badge { font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 20px; border: 1px solid var(--border); background: var(--bg); color: var(--muted); cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all 0.15s; }
+  .bs-jc-badge:hover { border-color: var(--muted); }
+  .bs-jc-badge.met { background: #E6EDD9; color: var(--green); border-color: transparent; }
+  .bs-jc-badge.missed { background: #F3D9D3; color: var(--red); border-color: transparent; }
+  .bs-jc-metrics { display: flex; flex-wrap: wrap; gap: 24px 32px; padding: 18px 22px; background: var(--bg); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+  .bs-jc-metric { min-width: 84px; }
+  .bs-jc-mlabel { font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin-bottom: 4px; }
+  .bs-jc-mval { font-family: 'DM Mono', monospace; font-size: 20px; font-weight: 500; }
+  .bs-jc-mdelta { font-family: 'DM Mono', monospace; font-size: 11px; margin-top: 2px; color: var(--muted); }
+  .bs-jc-mdelta.up { color: var(--green); }
+  .bs-jc-mdelta.down { color: var(--red); }
+  .bs-jc-cols { display: grid; grid-template-columns: 1fr 1fr; }
+  .bs-jc-col { padding: 18px 22px; }
+  .bs-jc-col + .bs-jc-col { border-left: 1px solid var(--border); }
+  .bs-jc-coltag { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin-bottom: 10px; }
+  .bs-jc-text { width: 100%; border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; font-family: 'DM Sans', sans-serif; font-size: 14px; line-height: 1.5; background: var(--bg); color: var(--text); outline: none; resize: vertical; }
+  .bs-jc-text:focus { border-color: var(--muted); }
+  .bs-jc-prevgoal { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--muted); margin-top: 10px; line-height: 1.4; }
+  @media (max-width: 640px) { .bs-jc-cols { grid-template-columns: 1fr; } .bs-jc-col + .bs-jc-col { border-left: none; border-top: 1px solid var(--border); } }
   .bs-form-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 4px; }
   .bs-form-grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px; }
 
@@ -423,7 +448,7 @@
   </button>
   <div style="margin-left:auto;display:flex;align-items:center;gap:12px;">
     <span id="drive-status" class="drive-status"></span>
-    <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text)">v4.0</span>
+    <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text)">v4.1</span>
   </div>
 </nav>
 
@@ -835,7 +860,7 @@
   <div id="bs-charts-grid"></div>
 
   <div class="log-section" style="margin-bottom:32px">
-    <h3>Check-ins</h3>
+    <h3>Check-in journal</h3>
     <div id="bs-entry-list"><div class="empty-state">No check-ins yet. Log your first one below.</div></div>
   </div>
 
@@ -2189,27 +2214,93 @@ function bsRenderChart() {
 }
 
 function bsRenderList() {
+  // Newest first; each card's "previous" is the next older check-in
   const sorted = [...bsEntries].sort((a, b) => new Date(b.date) - new Date(a.date));
-  const fmtShort = dateStr => {
-    const d = new Date(dateStr + 'T00:00:00');
-    return d.toLocaleDateString('en-AU', { month: 'short', day: 'numeric' });
-  };
+  const fmtLong = dateStr => new Date(dateStr + 'T00:00:00').toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' });
+  const esc = s => (s || '').toString().replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+
   const el = document.getElementById('bs-entry-list');
   if (!sorted.length) {
-    el.innerHTML = '<div class="empty-state">No check-ins yet.</div>';
+    el.innerHTML = '<div class="empty-state">No check-ins yet. Log your first one below.</div>';
     return;
   }
-  el.innerHTML = sorted.map(e => {
-    const vals = [
-      e.bodyFat   !== undefined ? `<span><span class="lbl">fat</span><b>${Number(e.bodyFat).toFixed(1)}%</b></span>` : '',
-      e.weight    !== undefined ? `<span><span class="lbl">wt</span><b>${Number(e.weight).toFixed(1)}kg</b></span>` : '',
-      e.leanMass  !== undefined ? `<span><span class="lbl">lean</span><b>${Number(e.leanMass).toFixed(1)}kg</b></span>` : '',
-      e.chestPinch    !== undefined ? `<span><span class="lbl">chest</span><b>${Number(e.chestPinch).toFixed(1)}mm</b></span>` : '',
-      e.stomachPinch  !== undefined ? `<span><span class="lbl">stomach</span><b>${Number(e.stomachPinch).toFixed(1)}mm</b></span>` : '',
-      e.legPinch      !== undefined ? `<span><span class="lbl">leg</span><b>${Number(e.legPinch).toFixed(1)}mm</b></span>` : '',
-    ].filter(Boolean).join('');
-    return `<div class="bs-entry-row"><div class="bs-entry-date">${fmtShort(e.date)}</div><div class="bs-entry-vals">${vals}</div><button class="btn-log-now" onclick="bsStartEdit('${e.id}')">Edit</button></div>`;
+
+  el.innerHTML = sorted.map((e, i) => {
+    const prev = sorted[i + 1]; // older check-in
+
+    // Metrics strip with deltas vs previous
+    const metrics = BS_METRICS.filter(m => e[m.key] !== undefined && e[m.key] !== '').map(m => {
+      const val = Number(e[m.key]);
+      let deltaHtml = '';
+      if (prev && prev[m.key] !== undefined && prev[m.key] !== '') {
+        const d = val - Number(prev[m.key]);
+        const cls = d > 0 ? 'up' : d < 0 ? 'down' : 'flat';
+        deltaHtml = `<div class="bs-jc-mdelta ${cls}">${d >= 0 ? '+' : ''}${d.toFixed(1)}${m.unit}</div>`;
+      }
+      return `<div class="bs-jc-metric">
+        <div class="bs-jc-mlabel">${m.label}</div>
+        <div class="bs-jc-mval">${val.toFixed(m.decimals)}${m.unit}</div>
+        ${deltaHtml}
+      </div>`;
+    }).join('');
+
+    // Goal-met badge judges the PREVIOUS check-in's goal
+    const prevGoal = prev && prev.goalNext ? prev.goalNext.trim() : '';
+    let badge = '';
+    if (prevGoal) {
+      const met = e.goalMet;
+      badge = `<div class="bs-jc-badge-wrap">
+        <button class="bs-jc-badge ${met === 'met' ? 'met' : ''}" onclick="bsSetGoalMet('${e.id}','met')">✓ Goal met</button>
+        <button class="bs-jc-badge ${met === 'missed' ? 'missed' : ''}" onclick="bsSetGoalMet('${e.id}','missed')">✗ Missed</button>
+      </div>`;
+    }
+
+    const prevGoalHtml = prevGoal
+      ? `<div class="bs-jc-prevgoal">Previous goal: “${esc(prevGoal)}”</div>`
+      : '';
+
+    return `<div class="bs-jc-card">
+      <div class="bs-jc-head">
+        <div class="bs-jc-date">${fmtLong(e.date)}</div>
+        <div class="bs-jc-head-right">
+          ${badge}
+          <button class="btn-log-now" onclick="bsStartEdit('${e.id}')">Edit</button>
+        </div>
+      </div>
+      <div class="bs-jc-metrics">${metrics}</div>
+      <div class="bs-jc-cols">
+        <div class="bs-jc-col">
+          <div class="bs-jc-coltag">📝 What made this happen</div>
+          <textarea class="bs-jc-text" rows="4" placeholder="Did you hit last check-in's goal? What worked or didn't this period?"
+            onchange="bsSetField('${e.id}','reflection',this.value)">${esc(e.reflection || '')}</textarea>
+        </div>
+        <div class="bs-jc-col">
+          <div class="bs-jc-coltag">🎯 Goal for next check-in</div>
+          <textarea class="bs-jc-text" rows="4" placeholder="What are you aiming for by the next check-in?"
+            onchange="bsSetField('${e.id}','goalNext',this.value)">${esc(e.goalNext || '')}</textarea>
+          ${prevGoalHtml}
+        </div>
+      </div>
+    </div>`;
   }).join('');
+}
+
+function bsSetField(id, field, value) {
+  const e = bsEntries.find(x => x.id === id);
+  if (!e) return;
+  const v = value.trim();
+  if (v) e[field] = v; else delete e[field];
+  bsSaveData();
+  bsRenderList();
+}
+
+function bsSetGoalMet(id, status) {
+  const e = bsEntries.find(x => x.id === id);
+  if (!e) return;
+  e.goalMet = (e.goalMet === status) ? undefined : status; // toggle off if same
+  if (e.goalMet === undefined) delete e.goalMet;
+  bsSaveData();
+  bsRenderList();
 }
 
 let bsEditingId = null;
@@ -2262,9 +2353,16 @@ function bsLogCheckin() {
   // Replace by id if editing, otherwise replace by date or append
   const idxById = bsEditingId ? bsEntries.findIndex(e => e.id === bsEditingId) : -1;
   const idxByDate = bsEntries.findIndex(e => e.date === date);
-  if (idxById !== -1) bsEntries[idxById] = entry;
-  else if (idxByDate !== -1) bsEntries[idxByDate] = entry;
-  else bsEntries.push(entry);
+  const targetIdx = idxById !== -1 ? idxById : idxByDate;
+  if (targetIdx !== -1) {
+    // Preserve journal fields from the entry being replaced — never lose reflection/goal/status on a measurement edit
+    ['reflection', 'goalNext', 'goalMet'].forEach(k => {
+      if (bsEntries[targetIdx][k] !== undefined) entry[k] = bsEntries[targetIdx][k];
+    });
+    bsEntries[targetIdx] = entry;
+  } else {
+    bsEntries.push(entry);
+  }
 
   const wasEditing = !!bsEditingId;
   bsEditingId = null;

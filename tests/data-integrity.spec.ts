@@ -1275,6 +1275,75 @@ test.describe('Body Stats — data integrity', () => {
     expect(entries).toHaveLength(0);
   });
 
+  test('journal: reflection and next-period goal persist inline', async ({ page }) => {
+    await openFresh(page);
+    const seed = [{ id: 'bs-j1', date: '2026-06-20', weight: 88.1 }];
+    await page.evaluate((d) => { localStorage.setItem('bodystats_v1', JSON.stringify(d)); }, seed);
+    await page.reload();
+    await page.waitForLoadState('networkidle');
+    await page.click('#nav-bodystats');
+    await page.waitForTimeout(300);
+
+    await page.locator('.bs-jc-card textarea').nth(0).fill('Trained 4x a week.');
+    await page.locator('.bs-jc-card textarea').nth(0).blur();
+    await page.locator('.bs-jc-card textarea').nth(1).fill('Body fat under 18% next time.');
+    await page.locator('.bs-jc-card textarea').nth(1).blur();
+
+    const entry = JSON.parse(await page.evaluate(() => localStorage.getItem('bodystats_v1')) as string)[0];
+    expect(entry.reflection).toBe('Trained 4x a week.');
+    expect(entry.goalNext).toBe('Body fat under 18% next time.');
+  });
+
+  test('journal: goal-met badge toggles met/missed and previous goal carries forward', async ({ page }) => {
+    await openFresh(page);
+    // Older entry sets a goal; newer entry is judged against it
+    const seed = [
+      { id: 'bs-old', date: '2026-05-16', weight: 89, goalNext: 'Get body fat under 18.5%.' },
+      { id: 'bs-new', date: '2026-06-20', weight: 88.1 },
+    ];
+    await page.evaluate((d) => { localStorage.setItem('bodystats_v1', JSON.stringify(d)); }, seed);
+    await page.reload();
+    await page.waitForLoadState('networkidle');
+    await page.click('#nav-bodystats');
+    await page.waitForTimeout(300);
+
+    // Newest card (first) shows the previous goal text
+    const firstCard = page.locator('.bs-jc-card').nth(0);
+    await expect(firstCard.locator('.bs-jc-prevgoal')).toContainText('Get body fat under 18.5%.');
+
+    // Mark goal met
+    await firstCard.locator('.bs-jc-badge', { hasText: 'Goal met' }).click();
+    let newEntry = JSON.parse(await page.evaluate(() => localStorage.getItem('bodystats_v1')) as string).find((e: any) => e.id === 'bs-new');
+    expect(newEntry.goalMet).toBe('met');
+
+    // Toggling the same badge again clears it
+    await firstCard.locator('.bs-jc-badge', { hasText: 'Goal met' }).click();
+    newEntry = JSON.parse(await page.evaluate(() => localStorage.getItem('bodystats_v1')) as string).find((e: any) => e.id === 'bs-new');
+    expect(newEntry.goalMet).toBeUndefined();
+  });
+
+  test('journal: editing measurements preserves reflection, goal, and met status', async ({ page }) => {
+    await openFresh(page);
+    const seed = [{ id: 'bs-keep', date: '2026-06-20', weight: 88.1, reflection: 'Kept it tight.', goalNext: 'Hold the line.', goalMet: 'met' }];
+    await page.evaluate((d) => { localStorage.setItem('bodystats_v1', JSON.stringify(d)); }, seed);
+    await page.reload();
+    await page.waitForLoadState('networkidle');
+    await page.click('#nav-bodystats');
+    await page.waitForTimeout(300);
+
+    // Edit the measurement via the form
+    await page.locator('.bs-jc-card .btn-log-now', { hasText: 'Edit' }).click();
+    await page.fill('#bs-weight', '87.5');
+    await page.click('#bs-submit-btn');
+
+    const entry = JSON.parse(await page.evaluate(() => localStorage.getItem('bodystats_v1')) as string)[0];
+    expect(entry.weight).toBe(87.5);
+    // Journal fields survived the measurement edit
+    expect(entry.reflection).toBe('Kept it tight.');
+    expect(entry.goalNext).toBe('Hold the line.');
+    expect(entry.goalMet).toBe('met');
+  });
+
 });
 
 // ─────────────────────────────────────────────
