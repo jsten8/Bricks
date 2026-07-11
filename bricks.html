@@ -448,7 +448,7 @@
   </button>
   <div style="margin-left:auto;display:flex;align-items:center;gap:12px;">
     <span id="drive-status" class="drive-status"></span>
-    <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text)">v4.3</span>
+    <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text)">v4.4</span>
   </div>
 </nav>
 
@@ -2108,6 +2108,32 @@ function bsRenderChart() {
   }
 
   const fmtShort = dateStr => new Date(dateStr + 'T00:00:00').toLocaleDateString('en-AU', { month: 'short', day: 'numeric' });
+  const fmtTip = dateStr => new Date(dateStr + 'T00:00:00').toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' });
+
+  // Shared x-axis: hidden except a year label (and a faint divider) at each year boundary
+  const yearAxis = {
+    display: true,
+    offset: false,
+    grid: {
+      display: true,
+      drawTicks: false,
+      color: ctx => {
+        const i = ctx.index;
+        if (i <= 0 || !allDates[i] || !allDates[i - 1]) return 'transparent';
+        return allDates[i].slice(0, 4) !== allDates[i - 1].slice(0, 4) ? '#CFC6B4' : 'transparent';
+      },
+    },
+    ticks: {
+      font: { family: 'DM Mono', size: 9 }, color: '#9A9088', maxRotation: 0, autoSkip: false,
+      callback: (val, index) => {
+        const d = allDates[index];
+        if (!d) return '';
+        const y = d.slice(0, 4);
+        const py = index > 0 ? allDates[index - 1].slice(0, 4) : null;
+        return (index === 0 || y !== py) ? y : '';
+      },
+    },
+  };
   const valsFor = key => allDates.map(date => {
     const e = chronological.find(en => en.date === date);
     return (e && e[key] !== undefined && e[key] !== '') ? Number(e[key]) : null;
@@ -2189,10 +2215,10 @@ function bsRenderChart() {
         maintainAspectRatio: false,
         plugins: {
           legend: { display: false },
-          tooltip: { callbacks: { title: items => fmtShort(items[0].label), label: item => item.parsed.y !== null ? ` ${item.parsed.y.toFixed(m.decimals)}${m.unit}` : '' } }
+          tooltip: { callbacks: { title: items => fmtTip(items[0].label), label: item => item.parsed.y !== null ? ` ${item.parsed.y.toFixed(m.decimals)}${m.unit}` : '' } }
         },
         scales: {
-          x: { display: false },
+          x: yearAxis,
           y: { grid: { color: '#E8E4DE' }, border: { dash: [3, 3] }, ticks: { font: { family: 'DM Mono', size: 9 }, color: '#9A9088', maxTicksLimit: 3, callback: v => v + m.unit } }
         }
       }
@@ -2212,10 +2238,10 @@ function bsRenderChart() {
         interaction: { mode: 'index', intersect: false },
         plugins: {
           legend: { display: false },
-          tooltip: { callbacks: { title: items => fmtShort(items[0].label), label: item => item.parsed.y !== null ? ` ${item.dataset.label.replace(g.trim, '')}: ${item.parsed.y.toFixed(1)}${g.unit}` : '' } }
+          tooltip: { callbacks: { title: items => fmtTip(items[0].label), label: item => item.parsed.y !== null ? ` ${item.dataset.label.replace(g.trim, '')}: ${item.parsed.y.toFixed(1)}${g.unit}` : '' } }
         },
         scales: {
-          x: { display: false },
+          x: yearAxis,
           y: { grid: { color: '#E8E4DE' }, border: { dash: [3, 3] }, ticks: { font: { family: 'DM Mono', size: 9 }, color: '#9A9088', maxTicksLimit: 3, callback: v => v + g.unit } }
         }
       }
