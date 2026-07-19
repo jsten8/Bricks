@@ -1725,6 +1725,46 @@ test.describe('Macros — data integrity', () => {
     await expect(page.locator('#mac-oneoff-body .mac-name')).toHaveText('Airport sandwich');
   });
 
+  test('quick-add quantity stepper: ticking logs qty servings with multiplied macros', async ({ page }) => {
+    await seedCatalogAndOpen(page, [QUICK_ITEM]); // Protein shake: 220 cal / 38g per serving
+
+    // Bump quantity to 2, then tick
+    await page.locator('#mac-quick-body .mac-qty-btn[onclick*=",1)"]').click();
+    await expect(page.locator('#mac-quick-body .mac-qty-n')).toHaveText('2');
+    await page.locator('#mac-quick-body input[type="checkbox"]').check();
+
+    const appToday = await page.evaluate(() => (window as any).today());
+    const day = JSON.parse(await page.evaluate(() => localStorage.getItem('macros_log_v1')) as string)[appToday];
+    expect(day.entries).toHaveLength(1);
+    const e = day.entries[0];
+    expect(e.qty).toBe(2);
+    expect(e.cals).toBe(440);      // 220 * 2
+    expect(e.protein).toBe(76);    // 38 * 2
+    expect(e.qtyLabel).toBe('2 servings');
+  });
+
+  test('quick-add stepper updates the logged entry live', async ({ page }) => {
+    await seedCatalogAndOpen(page, [QUICK_ITEM]);
+
+    await page.locator('#mac-quick-body input[type="checkbox"]').check();
+    // Now logged at qty 1; step up to 3
+    await page.locator('#mac-quick-body .mac-qty-btn[onclick*=",1)"]').click();
+    await page.locator('#mac-quick-body .mac-qty-btn[onclick*=",1)"]').click();
+
+    const appToday = await page.evaluate(() => (window as any).today());
+    const e = JSON.parse(await page.evaluate(() => localStorage.getItem('macros_log_v1')) as string)[appToday].entries[0];
+    expect(e.qty).toBe(3);
+    expect(e.cals).toBe(660);
+    expect(e.protein).toBe(114);
+
+    // Step back down to 1 (3 → 2 → 1); minus then disables at the floor
+    await page.locator('#mac-quick-body .mac-qty-btn[onclick*=",-1)"]').click();
+    await page.locator('#mac-quick-body .mac-qty-btn[onclick*=",-1)"]').click();
+    const e2 = JSON.parse(await page.evaluate(() => localStorage.getItem('macros_log_v1')) as string)[appToday].entries[0];
+    expect(e2.qty).toBe(1);
+    await expect(page.locator('#mac-quick-body .mac-qty-btn[onclick*=",-1)"]')).toBeDisabled();
+  });
+
 });
 
 // ─────────────────────────────────────────────
