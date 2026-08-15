@@ -452,7 +452,7 @@
   </button>
   <div style="margin-left:auto;display:flex;align-items:center;gap:12px;">
     <span id="drive-status" class="drive-status"></span>
-    <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text)">v4.7</span>
+    <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text)">v4.8</span>
   </div>
 </nav>
 
@@ -880,10 +880,11 @@
       <div class="field"><label>Lean mass (kg)</label><input type="number" step="0.1" id="bs-lean" placeholder="63.7"></div>
     </div>
     <div class="bs-section-tag">Caliper pinch (mm) <span style="font-size:11px;text-transform:none;letter-spacing:0;color:var(--muted);font-weight:400;">· Jacks order: Abdominal, Pectoral, Quadricep</span></div>
-    <div class="bs-form-grid-3">
+    <div class="bs-form-grid">
       <div class="field"><label>Chest</label><input type="number" step="0.5" id="bs-chest" placeholder="8"></div>
       <div class="field"><label>Stomach</label><input type="number" step="0.5" id="bs-stomach" placeholder="14"></div>
       <div class="field"><label>Leg</label><input type="number" step="0.5" id="bs-leg" placeholder="10"></div>
+      <div class="field"><label>Hips (Superilliac)</label><input type="number" step="0.5" id="bs-hip" placeholder="12"></div>
     </div>
     <button class="btn-log" id="bs-submit-btn" onclick="bsLogCheckin()">Log check-in</button>
   </div>
@@ -2029,6 +2030,7 @@ const BS_METRICS = [
   { key: 'chestPinch',   label: 'Chest pinch',    unit: 'mm', decimals: 1, color: '#8b7fc7' },
   { key: 'stomachPinch', label: 'Stomach pinch',  unit: 'mm', decimals: 1, color: '#d99a5b' },
   { key: 'legPinch',     label: 'Leg pinch',      unit: 'mm', decimals: 1, color: '#c77f95' },
+  { key: 'hipPinch',     label: 'Hip pinch',      unit: 'mm', decimals: 1, color: '#6f9a8b' },
 ];
 
 // For deltas: lean mass is the only metric where an increase is good; everything
@@ -2043,6 +2045,7 @@ const BS_MEDALS = {
   chestPinch:   'Leanest chest pinch',
   stomachPinch: 'Leanest stomach pinch',
   legPinch:     'Leanest leg pinch',
+  hipPinch:     'Leanest hips pinch',
 };
 const BS_BASELINE_KEY = 'bodystats_records_baseline_v1';
 
@@ -2149,7 +2152,7 @@ function bsRenderChart() {
   // Metrics that share a card. Everything else renders as its own solo card.
   const BS_GROUPS = [
     { id: 'composition', title: 'Weight & lean mass', keys: ['weight', 'leanMass'], unit: 'kg', trim: '' },
-    { id: 'caliper', title: 'Caliper pinches', keys: ['chestPinch', 'stomachPinch', 'legPinch'], unit: 'mm', trim: ' pinch' },
+    { id: 'caliper', title: 'Caliper pinches', keys: ['chestPinch', 'stomachPinch', 'legPinch', 'hipPinch'], unit: 'mm', trim: ' pinch' },
   ];
   const groupedKeys = new Set(BS_GROUPS.flatMap(g => g.keys));
 
@@ -2397,6 +2400,7 @@ function bsStartEdit(id) {
   document.getElementById('bs-chest').value = entry.chestPinch !== undefined ? entry.chestPinch : '';
   document.getElementById('bs-stomach').value = entry.stomachPinch !== undefined ? entry.stomachPinch : '';
   document.getElementById('bs-leg').value = entry.legPinch !== undefined ? entry.legPinch : '';
+  document.getElementById('bs-hip').value = entry.hipPinch !== undefined ? entry.hipPinch : '';
   document.getElementById('bs-form-title').textContent = 'Edit check-in';
   document.getElementById('bs-submit-btn').textContent = 'Save changes';
   document.getElementById('bs-cancel-edit').style.display = 'inline';
@@ -2406,7 +2410,7 @@ function bsStartEdit(id) {
 function bsCancelEdit() {
   bsEditingId = null;
   document.getElementById('bs-date').value = today();
-  ['bs-fat','bs-weight','bs-lean','bs-chest','bs-stomach','bs-leg'].forEach(id => { document.getElementById(id).value = ''; });
+  ['bs-fat','bs-weight','bs-lean','bs-chest','bs-stomach','bs-leg','bs-hip'].forEach(id => { document.getElementById(id).value = ''; });
   document.getElementById('bs-form-title').textContent = 'Log a check-in';
   document.getElementById('bs-submit-btn').textContent = 'Log check-in';
   document.getElementById('bs-cancel-edit').style.display = 'none';
@@ -2426,6 +2430,7 @@ function bsLogCheckin() {
     chestPinch:   parse('bs-chest'),
     stomachPinch: parse('bs-stomach'),
     legPinch:     parse('bs-leg'),
+    hipPinch:     parse('bs-hip'),
   };
   // Remove undefined keys
   Object.keys(entry).forEach(k => entry[k] === undefined && delete entry[k]);
@@ -2452,7 +2457,7 @@ function bsLogCheckin() {
   document.getElementById('bs-cancel-edit').style.display = 'none';
 
   bsSaveData();
-  ['bs-fat','bs-weight','bs-lean','bs-chest','bs-stomach','bs-leg'].forEach(id => { document.getElementById(id).value = ''; });
+  ['bs-fat','bs-weight','bs-lean','bs-chest','bs-stomach','bs-leg','bs-hip'].forEach(id => { document.getElementById(id).value = ''; });
   bsRender();
   showToast(wasEditing ? 'Check-in updated' : 'Check-in saved');
 }

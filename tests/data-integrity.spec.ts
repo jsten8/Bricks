@@ -1418,6 +1418,34 @@ test.describe('Body Stats — data integrity', () => {
     expect(payload.bsRecordsBaseline).toBe('2026-06-20');
   });
 
+  test('hips: logging via the form stores hipPinch as a number', async ({ page }) => {
+    await openBodyStats(page);
+
+    await page.fill('#bs-date', '2026-06-20');
+    await page.fill('#bs-hip', '12.5');
+    await page.click('#bs-submit-btn');
+
+    const entry = JSON.parse(await page.evaluate(() => localStorage.getItem('bodystats_v1')) as string)[0];
+    expect(entry.hipPinch).toBe(12.5);
+    expect(typeof entry.hipPinch).toBe('number');
+  });
+
+  test('hips: a new low earns the "Leanest hips pinch" record pill', async ({ page }) => {
+    await openFresh(page);
+    await page.evaluate(() => localStorage.setItem('bodystats_records_baseline_v1', '2026-06-20'));
+    const seed = [
+      { id: 'bs-may', date: '2026-05-16', hipPinch: 16 },
+      { id: 'bs-jun', date: '2026-06-20', hipPinch: 12 }, // new low → earns pill
+    ];
+    await page.evaluate((d) => { localStorage.setItem('bodystats_v1', JSON.stringify(d)); }, seed);
+    await page.reload();
+    await page.waitForLoadState('networkidle');
+    await page.click('#nav-bodystats');
+    await page.waitForTimeout(300);
+
+    await expect(page.locator('.bs-jc-card').nth(0).locator('.bs-medal', { hasText: 'Leanest hips pinch' })).toHaveCount(1);
+  });
+
 });
 
 // ─────────────────────────────────────────────
