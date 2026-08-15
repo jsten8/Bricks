@@ -303,11 +303,6 @@
   .bs-jc-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 18px 22px; }
   .bs-jc-date { font-family: 'DM Mono', monospace; font-size: 18px; font-weight: 500; letter-spacing: -0.3px; }
   .bs-jc-head-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
-  .bs-jc-badge-wrap { display: flex; gap: 4px; }
-  .bs-jc-badge { font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 20px; border: 1px solid var(--border); background: var(--bg); color: var(--muted); cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all 0.15s; }
-  .bs-jc-badge:hover { border-color: var(--muted); }
-  .bs-jc-badge.met { background: #E6EDD9; color: var(--green); border-color: transparent; }
-  .bs-jc-badge.missed { background: #F3D9D3; color: var(--red); border-color: transparent; }
   .bs-jc-metrics { display: flex; flex-wrap: wrap; gap: 24px 32px; padding: 18px 22px; background: var(--bg); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
   .bs-jc-metric { min-width: 84px; }
   .bs-jc-mlabel { font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin-bottom: 4px; }
@@ -457,7 +452,7 @@
   </button>
   <div style="margin-left:auto;display:flex;align-items:center;gap:12px;">
     <span id="drive-status" class="drive-status"></span>
-    <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text)">v4.6</span>
+    <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text)">v4.7</span>
   </div>
 </nav>
 
@@ -2348,17 +2343,7 @@ function bsRenderList() {
       ? `<div class="bs-jc-medals">${earned.map(k => `<span class="bs-medal">🏆 ${BS_MEDALS[k]}</span>`).join('')}</div>`
       : '';
 
-    // Goal-met badge judges the PREVIOUS check-in's goal
     const prevGoal = prev && prev.goalNext ? prev.goalNext.trim() : '';
-    let badge = '';
-    if (prevGoal) {
-      const met = e.goalMet;
-      badge = `<div class="bs-jc-badge-wrap">
-        <button class="bs-jc-badge ${met === 'met' ? 'met' : ''}" onclick="bsSetGoalMet('${e.id}','met')">✓ Goal met</button>
-        <button class="bs-jc-badge ${met === 'missed' ? 'missed' : ''}" onclick="bsSetGoalMet('${e.id}','missed')">✗ Missed</button>
-      </div>`;
-    }
-
     const prevGoalHtml = prevGoal
       ? `<div class="bs-jc-prevgoal">Previous goal: “${esc(prevGoal)}”</div>`
       : '';
@@ -2367,7 +2352,6 @@ function bsRenderList() {
       <div class="bs-jc-head">
         <div class="bs-jc-date">${fmtLong(e.date)}</div>
         <div class="bs-jc-head-right">
-          ${badge}
           <button class="btn-log-now" onclick="bsStartEdit('${e.id}')">Edit</button>
         </div>
       </div>
@@ -2399,14 +2383,6 @@ function bsSetField(id, field, value) {
   bsRenderList();
 }
 
-function bsSetGoalMet(id, status) {
-  const e = bsEntries.find(x => x.id === id);
-  if (!e) return;
-  e.goalMet = (e.goalMet === status) ? undefined : status; // toggle off if same
-  if (e.goalMet === undefined) delete e.goalMet;
-  bsSaveData();
-  bsRenderList();
-}
 
 let bsEditingId = null;
 
@@ -2461,7 +2437,7 @@ function bsLogCheckin() {
   const targetIdx = idxById !== -1 ? idxById : idxByDate;
   if (targetIdx !== -1) {
     // Preserve journal fields from the entry being replaced — never lose reflection/goal/status on a measurement edit
-    ['reflection', 'goalNext', 'goalMet'].forEach(k => {
+    ['reflection', 'goalNext'].forEach(k => {
       if (bsEntries[targetIdx][k] !== undefined) entry[k] = bsEntries[targetIdx][k];
     });
     bsEntries[targetIdx] = entry;

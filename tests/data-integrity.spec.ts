@@ -1295,9 +1295,9 @@ test.describe('Body Stats — data integrity', () => {
     expect(entry.goalNext).toBe('Body fat under 18% next time.');
   });
 
-  test('journal: goal-met badge toggles met/missed and previous goal carries forward', async ({ page }) => {
+  test('journal: previous check-in goal carries forward onto the newer card', async ({ page }) => {
     await openFresh(page);
-    // Older entry sets a goal; newer entry is judged against it
+    // Older entry sets a goal; newer card should surface it as "Previous goal"
     const seed = [
       { id: 'bs-old', date: '2026-05-16', weight: 89, goalNext: 'Get body fat under 18.5%.' },
       { id: 'bs-new', date: '2026-06-20', weight: 88.1 },
@@ -1308,24 +1308,14 @@ test.describe('Body Stats — data integrity', () => {
     await page.click('#nav-bodystats');
     await page.waitForTimeout(300);
 
-    // Newest card (first) shows the previous goal text
-    const firstCard = page.locator('.bs-jc-card').nth(0);
-    await expect(firstCard.locator('.bs-jc-prevgoal')).toContainText('Get body fat under 18.5%.');
-
-    // Mark goal met
-    await firstCard.locator('.bs-jc-badge', { hasText: 'Goal met' }).click();
-    let newEntry = JSON.parse(await page.evaluate(() => localStorage.getItem('bodystats_v1')) as string).find((e: any) => e.id === 'bs-new');
-    expect(newEntry.goalMet).toBe('met');
-
-    // Toggling the same badge again clears it
-    await firstCard.locator('.bs-jc-badge', { hasText: 'Goal met' }).click();
-    newEntry = JSON.parse(await page.evaluate(() => localStorage.getItem('bodystats_v1')) as string).find((e: any) => e.id === 'bs-new');
-    expect(newEntry.goalMet).toBeUndefined();
+    // Newest card (first) shows the previous goal text; oldest card has none
+    await expect(page.locator('.bs-jc-card').nth(0).locator('.bs-jc-prevgoal')).toContainText('Get body fat under 18.5%.');
+    await expect(page.locator('.bs-jc-card').nth(1).locator('.bs-jc-prevgoal')).toHaveCount(0);
   });
 
-  test('journal: editing measurements preserves reflection, goal, and met status', async ({ page }) => {
+  test('journal: editing measurements preserves reflection and goal', async ({ page }) => {
     await openFresh(page);
-    const seed = [{ id: 'bs-keep', date: '2026-06-20', weight: 88.1, reflection: 'Kept it tight.', goalNext: 'Hold the line.', goalMet: 'met' }];
+    const seed = [{ id: 'bs-keep', date: '2026-06-20', weight: 88.1, reflection: 'Kept it tight.', goalNext: 'Hold the line.' }];
     await page.evaluate((d) => { localStorage.setItem('bodystats_v1', JSON.stringify(d)); }, seed);
     await page.reload();
     await page.waitForLoadState('networkidle');
@@ -1342,7 +1332,6 @@ test.describe('Body Stats — data integrity', () => {
     // Journal fields survived the measurement edit
     expect(entry.reflection).toBe('Kept it tight.');
     expect(entry.goalNext).toBe('Hold the line.');
-    expect(entry.goalMet).toBe('met');
   });
 
   test('journal: delta colours reflect good/bad direction, not raw sign', async ({ page }) => {
