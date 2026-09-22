@@ -452,7 +452,7 @@
   </button>
   <div style="margin-left:auto;display:flex;align-items:center;gap:12px;">
     <span id="drive-status" class="drive-status"></span>
-    <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text)">v4.8</span>
+    <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text)">v4.9</span>
   </div>
 </nav>
 
@@ -587,7 +587,7 @@
     <div style="border-top:1px solid var(--border);padding:10px 16px;display:flex;align-items:center;justify-content:space-between;">
       <div style="display:flex;align-items:center;gap:10px;">
         <span style="font-size:12px;color:var(--muted)">Date</span>
-        <input type="date" id="nw-checkin-date" style="padding:4px 8px;border:1px solid var(--border);border-radius:6px;font-family:'DM Sans',sans-serif;font-size:13px;background:var(--bg);color:var(--text);outline:none;" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
+        <input type="date" id="nw-checkin-date" style="padding:4px 8px;border:1px solid var(--border);border-radius:6px;font-family:'DM Sans',sans-serif;font-size:13px;background:var(--bg);color:var(--text);outline:none;" onchange="nwDateChanged()" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
       </div>
       <div style="font-size:12px;color:var(--muted);text-align:right;">Previous check-in: <span id="nw-prev-date" style="color:var(--text);font-weight:500">—</span></div>
     </div>
@@ -733,6 +733,19 @@
       <div class="nw-row-expand" id="nwexp-lucas">
         <div class="nw-expand-label">How to calculate</div>
         <textarea class="nw-calc-ta" id="nwcalc-lucas" rows="2"></textarea>
+      </div>
+    </div>
+
+    <div class="nw-row" id="nwrow-sideHustleTax">
+      <div class="nw-row-main">
+        <span class="nw-row-name nw-debt" id="nwname-sideHustleTax" onclick="nwToggleRow('sideHustleTax')">Tax on side hustles</span>
+        <input class="nw-row-input" type="text" id="nwval-sideHustleTax" placeholder="0" data-key="sideHustleTax" oninput="nwRecalc()">
+        <span class="nw-row-delta neutral" id="nwd-sideHustleTax">—</span>
+        <textarea class="nw-row-commentary" id="nwcom-sideHustleTax" rows="2" placeholder="Add commentary..."></textarea>
+      </div>
+      <div class="nw-row-expand" id="nwexp-sideHustleTax">
+        <div class="nw-expand-label">How to calculate</div>
+        <textarea class="nw-calc-ta" id="nwcalc-sideHustleTax" rows="2"></textarea>
       </div>
     </div>
 
@@ -1394,7 +1407,10 @@ const NW_CHECKINS_KEY = 'nw_checkins_v1';
 const NW_CALCS_KEY = 'nw_calcs_v1';
 
 const NW_ASSET_KEYS = ['shares','property','cashEm','cashOff','super'];
-const NW_LIAB_KEYS  = ['mortgage','hecs','lucas'];
+const NW_LIAB_KEYS  = ['mortgage','hecs','lucas','sideHustleTax'];
+
+// "Tax on side hustles" only applies from the September 2026 check-in onward.
+const NW_SIDEHUSTLE_FROM = '2026-09-01';
 
 const NW_DEFAULT_CALCS = {
   shares:   'Check CommSec — current portfolio value',
@@ -1405,6 +1421,7 @@ const NW_DEFAULT_CALCS = {
   mortgage: 'Check mortgage portal for total balance → divide by 3',
   hecs:     'Log in to ATO — myHECS balance under study loans',
   lucas:    'Ask Lucas for current figure each check-in',
+  sideHustleTax: 'Estimate tax owed on side-hustle income this period',
 };
 
 let nwCheckins = [];
@@ -1498,6 +1515,29 @@ function nwNavStep(dir) {
   nwLoadCheckinForm(nwCurrentEditIdx);
 }
 
+function nwSideHustleActive(dateStr) {
+  return !!dateStr && dateStr >= NW_SIDEHUSTLE_FROM;
+}
+
+// Show/hide check-in rows that only apply from a certain date; clear hidden inputs so they save as 0.
+function nwUpdateConditionalRows(dateStr) {
+  const active = nwSideHustleActive(dateStr);
+  const row = document.getElementById('nwrow-sideHustleTax');
+  if (row) row.style.display = active ? '' : 'none';
+  if (!active) {
+    const val = document.getElementById('nwval-sideHustleTax');
+    const com = document.getElementById('nwcom-sideHustleTax');
+    if (val) val.value = '';
+    if (com) com.value = '';
+  }
+}
+
+function nwDateChanged() {
+  const dateStr = document.getElementById('nw-checkin-date')?.value || '';
+  nwUpdateConditionalRows(dateStr);
+  nwRecalc();
+}
+
 function nwLoadCheckinForm(idx) {
   if (idx === null) {
     // New check-in mode — clear form, unlocked
@@ -1517,6 +1557,7 @@ function nwLoadCheckinForm(idx) {
     document.getElementById('nw-nav-prev').style.opacity = nwCheckins.length > 0 ? '1' : '0.3';
     document.getElementById('nw-nav-next').style.opacity = '0.3';
     nwSetLocked(false);
+    nwUpdateConditionalRows(dateInput ? dateInput.value : '');
     nwRecalc();
     return;
   }
@@ -1546,6 +1587,7 @@ function nwLoadCheckinForm(idx) {
   document.getElementById('nw-nav-prev').style.opacity = idx > 0 ? '1' : '0.3';
   document.getElementById('nw-nav-next').style.opacity = idx < total - 1 ? '1' : '0.3';
   nwSetLocked(true);
+  nwUpdateConditionalRows(c.date);
   nwRecalc();
 }
 
@@ -1635,13 +1677,17 @@ function nwSaveCheckin() {
   const liabCommentary = {};
   NW_LIAB_KEYS.forEach(key => { liabCommentary[key] = document.getElementById('nwcom-' + key)?.value || ''; });
 
+  const dateStr = document.getElementById('nw-checkin-date')?.value || new Date().toISOString().split('T')[0];
+
+  // "Tax on side hustles" only applies from Sept 2026 — never record it on earlier check-ins
+  if (!nwSideHustleActive(dateStr)) { liabs.sideHustleTax = 0; liabCommentary.sideHustleTax = ''; }
+
   const totalAssets = Object.values(assets).reduce((a,b) => a+b, 0);
   const totalLiabs = Object.values(liabs).reduce((a,b) => a+b, 0);
   const nwVal = totalAssets - totalLiabs;
   const superVal = assets['super'] || 0;
   const nwExSuper = nwVal - superVal;
 
-  const dateStr = document.getElementById('nw-checkin-date')?.value || new Date().toISOString().split('T')[0];
   const [y, m] = dateStr.split('-');
   const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   const label = `${monthNames[parseInt(m)-1]} ${y}`;
@@ -1700,6 +1746,7 @@ const NW_ROWS = [
   { key: 'mortgage', label: 'Mortgage',              section: 'liabs'  },
   { key: 'hecs',     label: 'HECS',                  section: 'liabs'  },
   { key: 'lucas',    label: 'Debt to Lucas',         section: 'liabs'  },
+  { key: 'sideHustleTax', label: 'Tax on side hustles', section: 'liabs' },
 ];
 
 function nwRenderHistory() {
@@ -1805,6 +1852,8 @@ function nwRenderComparison() {
   let rows = '';
   let lastSection = null;
   NW_ROWS.forEach(r => {
+    // Skip the side-hustle tax row when neither compared check-in tracked it
+    if (r.key === 'sideHustleTax' && a.liabs[r.key] === undefined && b.liabs[r.key] === undefined) return;
     if (r.section !== lastSection) {
       lastSection = r.section;
       rows += `<tr class="nw-section-row"><td colspan="5">${r.section === 'assets' ? 'Assets' : 'Liabilities'}</td></tr>`;

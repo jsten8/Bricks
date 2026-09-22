@@ -709,6 +709,33 @@ test.describe('Net Worth — data integrity edge cases', () => {
     expect(c.liabCommentary.mortgage).toBe('Regular repayment');
   });
 
+  test('side-hustle tax: recorded on a September+ check-in and counted in liabilities', async ({ page }) => {
+    await openNetWorth(page);
+
+    await page.fill('#nw-checkin-date', '2026-09-22');
+    await expect(page.locator('#nwrow-sideHustleTax')).toBeVisible();
+    await page.fill('#nwval-shares', '10000');
+    await page.fill('#nwval-sideHustleTax', '500');
+    await page.click('button.btn-checkin');
+
+    const c = JSON.parse(await page.evaluate(() => localStorage.getItem('nw_checkins_v1')) as string)[0];
+    expect(c.liabs.sideHustleTax).toBe(500);
+    expect(c.nw).toBe(9500); // 10000 assets − 500 liabilities
+  });
+
+  test('side-hustle tax: hidden and stored as 0 on a pre-September check-in', async ({ page }) => {
+    await openNetWorth(page);
+
+    await page.fill('#nw-checkin-date', '2026-08-15');
+    await expect(page.locator('#nwrow-sideHustleTax')).toBeHidden();
+    await page.fill('#nwval-shares', '10000');
+    await page.click('button.btn-checkin');
+
+    const c = JSON.parse(await page.evaluate(() => localStorage.getItem('nw_checkins_v1')) as string)[0];
+    expect(c.liabs.sideHustleTax).toBe(0);
+    expect(c.nw).toBe(10000);
+  });
+
 });
 
 // ─────────────────────────────────────────────
